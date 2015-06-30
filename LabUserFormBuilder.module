@@ -1,0 +1,158 @@
+<?php
+/**
+ * A²Fab Lab LabUser Module
+ *
+ * Developed for the A² Fab Lab at the University of Florida.
+ * Builds and injects forms via hooks to the frontend and backend.
+ *
+ * Thomas R Storey, 2015
+ * Licensed under MIT License, see LICENSE.TXT
+ *
+ * http://fablab.arts.ufl.edu
+ * https://github.com/UF-Asq-Fab-Lab
+ *
+ */
+
+ class LabUserFormBuilder extends ModuleJS implements Module {
+
+   protected $event;
+   protected $config_data;
+
+   public static function getModuleInfo() {
+     return array(
+       'title' => 'A² Fab Lab LabUser Form Builder',
+       'summary' => 'Builds forms for extended User functions',
+       'version' => 100,
+       'author' => "Thomas R Storey",
+       'autoload' => false,
+       'singular' => false,
+       'permanent' => false,
+       'requires' => array("LabUser>=1.0.0")
+     );
+   }
+
+   public function init(){
+
+   }
+
+   public function __construct($event, $page){
+     $this->event = $event;
+     $this->config_data = $this->modules->getModuleConfigData("LabUser");
+   }
+
+   public function loginForm(){
+     //build something using the inputfield form, return the rendered output
+     $class = $this->className();
+     $wrapper = $this->modules->get("InputfieldForm");
+     $wrapper->attr('id', "Login");
+     $wrapper->attr('title', "Login Form");
+     $inputfields = $this->modules->get("LabUser")->getInputfields();
+     $formfields = $inputfields['login_form'];
+     foreach ($formfields as $key => $array) {
+         $field = $this->modules->get($array['type']);
+         foreach ($array as $key => $value) {
+           if(!strcmp($key, "type")){
+             continue;
+           } else if(!strcmp($key, "label")) {
+             $field->label = $value;
+           } else {
+             $field->attr($key, $value);
+           }
+         }
+         $wrapper->append($field);
+     }
+    //  $cssinclude = '<link rel="stylesheet" type="text/css" href="%s"><link rel="stylesheet" type="text/css" href="%s">';
+    //  $cssinclude = sprintf($cssinclude, $this->config->urls->$class . "$class.css", $this->config->urls->adminTemplates."styles/font-awesome/css/font-awesome.min.css");
+     return $wrapper->render();
+   }
+
+   public function buildForm($formtype){
+     //generic formbuider
+     //build something using the inputfield form, return the rendered output
+     $wrapper = $this->modules->get("InputfieldForm");
+     $captype = ucwords($formtype);
+     $wrapper->attr('id', $captype);
+     $wrapper->attr('title', $captype." Form");
+     $inputfields = $this->modules->get("LabUser")->getInputfields();
+     $formfields = $inputfields[$formtype."_form"];
+     foreach ($formfields as $key => $array) {
+         $field = $this->modules->get($array['type']);
+         foreach ($array as $key => $value) {
+           if(!strcmp($key, "type")){
+             continue;
+           } else if(!strcmp($key, "label")) {
+             $field->label = $value;
+           } else {
+             $field->attr($key, $value);
+           }
+         }
+         $wrapper->append($field);
+     }
+    //  $cssinclude = '<link rel="stylesheet" type="text/css" href="%s"><link rel="stylesheet" type="text/css" href="%s">';
+    //  $cssinclude = sprintf($cssinclude, $this->config->urls->$class . "$class.css", $this->config->urls->adminTemplates."styles/font-awesome/css/font-awesome.min.css");
+     return $wrapper->render();
+   }
+
+   public function buildUploadsTable(){
+    //  build a list of uploadpage files, displaying their filename and status
+    // may be best to build my own markup in this case
+    // get all uploads by this user
+    $uploads = $pages->find("username=$user->name, template=upload, check_access=0, include=all");
+    $out = "<table class='lab-user-uploads-table'>\n";
+    foreach ($uploads as $key => $value) {
+      $out .= "<tr class=lab-user-uploads-row>\n";
+      $out .= sprintf("<td>%s</td>", $value->upload_file->name);
+      $out .= sprintf("<td>%s</td>", $value->timestamp);
+      $out .= sprintf("<td>%s</td>", $value->status);
+      $out .= "</tr>";
+    }
+    return $out .= "</table>";
+   }
+
+   public function buildChargesTable(){
+     $uploads = $pages->find("username=$user->name, template=charge, check_access=0, include=all");
+     $out = "<table class='lab-user-charges-table'>\n";
+     foreach ($uploads as $key => $value) {
+       $out .= "<tr class=lab-user-charges-row>\n";
+       $out .= sprintf("<td>%s</td>", $value->name);
+       $out .= sprintf("<td>%s</td>", $value->item);
+       $out .= sprintf("<td>%s</td>", $value->price);
+       $out .= sprintf("<td>%s</td>", $value->time);
+       $out .= "</tr>";
+     }
+     return $out .= "</table>";
+   }
+
+   public function chargeTab(){
+     //get the form from the event object, return it with new tab appended
+     $form = $this->event->return;
+     $chargepage = $this->event->object->getPage();
+     $uploadpage = $pages->get($chargepage->upload_id);
+     $wrapper = new InputfieldWrapper();
+     $charge = new Charge($uploadpage);
+     $id = 'AddChargeForm';
+     $title = $this->_('Submit Charge'); // Tab Label: Submit Charge
+     $wrapper->attr('id', $id);
+     $wrapper->attr('title', $title);
+
+     $field = $this->modules->get('InputfieldTextarea');
+     $field->id = "text";
+     $field->name = "text";
+     $field->label = "Charge File Preview";
+     $field->value = $charge->generateCharge();
+     $wrapper->append($field);
+
+     $button = $this->modules->get('InputfieldSubmit');
+     $button->id = "send_request";
+     $button->name = "send_request";
+     $button->value = "Submit";
+     $button->label = 'Submit Charge';
+     $button->icon = 'dollar';
+
+     $wrapper->append($button);
+
+     return $wrapper;
+   }
+
+ }
+ ?>

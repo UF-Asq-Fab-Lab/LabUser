@@ -1,0 +1,211 @@
+<?php
+/**
+ * A²Fab Lab User Extensions Module
+ *
+ * Developed for the A² Fab Lab at the University of Florida.
+ * The Charge module handles generating and sending individual or
+ * batches of charges. As such it also manages the WebDAV connection.
+ *
+ * Thomas R Storey, 2015
+ * Licensed under MIT License, see LICENSE.TXT
+ *
+ * http://fablab.arts.ufl.edu
+ * https://github.com/UF-Asq-Fab-Lab
+ *
+ */
+
+include dirname()."SabreDAV/vendor/autoload.php";
+
+class Charge extends WireData implements Module, ConfigurableModule{
+
+  protected $settings;
+  protected $client;
+
+  public static function getModuleInfo(){
+    return array(
+      'title' => 'A² Fab Lab Charge Module',
+      'summary' => 'Generates and sends charges to the WebDAV server',
+      'version' => 100,
+      'author' => "Thomas R Storey",
+      'autoload' => false,
+      'singular' => false,
+      'permanent' => false
+    );
+  }
+
+  /**
+  *
+  */
+
+  public static function getDefaultConfig(){
+    return array(
+      'webDAVUser' => array(
+        'type' => 'InputfieldText',
+        'value' => 'wdtest',
+        'label' => 'The username for authentication on the webDAV server'
+      ),
+      'webDAVPass' => array(
+        'type' => 'InputfieldPassword',
+        'value' => 'pwd1101',
+        'label' => 'The password for authentication on the webDAV server'
+      ),
+      'webDAVUri' => array(
+        'type' => 'InputfieldURL',
+        'value' => 'http://localhost/webdav',
+        'label' => 'base URI for the webDAV server'
+      ),
+      'inboundPath' => array(
+        'type' => 'InputfieldText',
+        'value' => '/prod/Inbound/DCP/UFS/',
+        'label' => 'location to upload sent charges to the server'
+      ),
+      'outboundPath' => array(
+        'type' => 'InputfieldText',
+        'value' => '/prod/Outbound/DCP/UFS/',
+        'label' => 'location where generated results will be placed on the server'
+      ),
+      'ref_code' => array(
+        'type' => 'InputfieldText',
+        'value' => 'AAFABLAB',
+        'label' => 'Reference code for the lab. Should be all caps.'
+      ),
+      'spring_start' => array(
+        'type' => 'InputfieldDatetime',
+        'value' => '',
+        'label' => 'Start date for the spring semester this calendar year. Must be changed every new year.'
+      ),
+      'summer_start' => array(
+        'type' => 'InputfieldDatetime',
+        'value' => '',
+        'label' => 'Start date for the summer semester this calendar year. Must be changed every new year.'
+      ),
+      'fall_start' => array(
+        'type' => 'InputfieldDatetime',
+        'value' => '',
+        'label' => 'Start date for the fall semester this calendar year. Must be changed every new year.'
+      )
+    );
+  }
+
+  /**
+  *
+  */
+
+  public function ready(){
+    $this->data = $modules->getModuleConfigData($this);
+    $this->settings = array(
+      'baseUri' => $data['webDAVUri'],
+      'userName' => $data['webDAVUser'],
+      'password' => $data['webDAVPass'],
+    );
+    $this->client = new Sabre\DAV\Client($settings);
+  }
+
+  /**
+  *
+  */
+
+  public function generateChargeFile($pageArray){
+    // OTH 32100000000102062630               120.00AAFABLAB00003459              215103062015
+    $out = "";
+    $total = 0.0;
+    // generate individual charge details
+    foreach ($pageArray as $page) {
+      $detail = "";
+      $acct_type = $page->acct_type;
+      $filler = " ";
+      $item_type = $page->item_type->type_code;
+      $ufid = $page->ufid;
+      $total += $page->amount;
+      $amount = number_format($page->amount, 2, '.', '');
+      $ref_number = $page->ref_number;
+      $term = $page->term;
+      $due_date = $page->due_date;
+      $reversal = ($page->reversal) ? "Y" : " " ;
+      $detail.=$acct_type.$filler.$item_type.$ufid;
+      $amount = str_pad($amount, 18, " ", STR_PAD_LEFT);
+      $detail.=$amount.$this->data['ref_code'].str_pad(str_pad($ref_number, 8, "0", STR_PAD_LEFT), 30, " ", STR_PAD_RIGHT);
+      $detail.=$term.$due_date.$reversal;
+      $detail = str_pad($detail, 120, " ", STR_PAD_RIGHT);
+      $detail.="\n";
+      $out.= $detail;
+    }
+    // generate trailer record
+    $trailer.="C000240";
+    $d = date("m-d-Y");
+    $t = date("H:i:s");
+    $trailer.=$d.$t;
+    $trailer.=str_pad(strval(count($pageArray)), 10, ' ', STR_PAD_LEFT);
+    $total = str_pad(number_format($total, 2, '.', ''), 15, ' ', STR_PAD_LEFT);
+    $trailer.=$total;
+    $trailer = str_pad($trailer, 120, ' ', STR_PAD_RIGHT);
+    // add trailer to detail records
+    $out.=$trailer;
+    // generate filename (time is next day if after 5pm)
+    $filename = "";
+    if(date('H') < 17){
+      $filename = date('Ymd');
+    } else {
+      $filename = date('Ymd', strtotime('+1 day'));
+    }
+    $filename = "DCPSFAR.".$filename.".txt";
+    // return charge as an array, filename + contents of file
+    return array(
+      'filename' => $filename,
+      'contents' => $out
+    );
+  }
+
+  /**
+  *
+  */
+
+  public function sendCharge($charge){
+
+  }
+
+  /**
+  *
+  */
+
+  public function getResults($page){
+
+  }
+
+  /**
+  *
+  */
+
+  public function chargeFromUploadPage($page){
+    $c = "2";
+    $yy = date("y");
+    $ts1 = strtotime($this->data["spring_start"]);
+    $ts5 = strtotime($this->data["summer_start"]);
+    $ts8 = strtotime($this->data["fall_start"]);
+    $t;
+  }
+
+  /**
+  *
+  */
+
+  public static function getModuleConfigInputFields(array $data) {
+    $inputfields = new InputFieldWrapper();
+    $defaults = self::getDefaultConfig();
+
+    foreach ($defaults as $key => $value) {
+        $field = wire('modules')->get($value['type']);
+        $field->name = $key;
+        $field->label = $value['label'];
+        if(isset($data[$key])){
+          $field->value = $data[$key];
+        } else {
+          $field->value = $value['value'];
+        }
+        $inputfields->add($field);
+    }
+    return $inputfields;
+  }
+
+}
+ ?>
