@@ -103,7 +103,7 @@
       $out .= "<tr class=lab-user-uploads-row>\n";
       $out .= sprintf("<td>%s</td>", $value->upload_file->name);
       $out .= sprintf("<td>%s</td>", $value->timestamp);
-      $out .= sprintf("<td>%s</td>", $value->status);
+      $out .= sprintf("<td>%s</td>", $value->status); // this should work
       $out .= "</tr>";
     }
     return $out .= "</table>";
@@ -114,10 +114,10 @@
      $out = "<table class='lab-user-charges-table'>\n";
      foreach ($uploads as $key => $value) {
        $out .= "<tr class=lab-user-charges-row>\n";
-       $out .= sprintf("<td>%s</td>", $value->name);
+       $out .= sprintf("<td>%s</td>", $value->title);
        $out .= sprintf("<td>%s</td>", $value->item);
-       $out .= sprintf("<td>%s</td>", $value->price);
-       $out .= sprintf("<td>%s</td>", $value->time);
+       $out .= sprintf("<td>%s</td>", $value->amount);
+       $out .= sprintf("<td>%s</td>", $value->timestamp);
        $out .= "</tr>";
      }
      return $out .= "</table>";

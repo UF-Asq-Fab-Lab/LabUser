@@ -125,7 +125,7 @@
          'ufid' => 'FieldtypeText',
          'amount' => 'FieldtypeFloat',
          'ref_number' => 'FieldtypeText',
-         'timestamp' => 'FieldtypeText', 
+         'timestamp' => 'FieldtypeText',
          'term' => 'FieldtypeText',
          'due_date' => 'FieldtypeText',
          'reversal' => 'FieldtypeCheckbox',
@@ -718,8 +718,9 @@
          }
          if(!strcmp($type, "FieldtypePage")){
            // TODO: custom configuration for page fieldtype?
-           $f->findPagesSelector = 'template=material, check_access=0, include=all';
-           $f->template_id = wire('templates')->get("name=material")->id;
+           $f->findPagesSelector = 'template=item, check_access=0, include=all';
+           $f->template_id = wire('templates')->get("name=item")->id;
+           $f->inputfield = "InputfieldSelect";
          }
          $f->label = ucwords(str_replace("_", " ", $name));
          $f->tags = "user";
