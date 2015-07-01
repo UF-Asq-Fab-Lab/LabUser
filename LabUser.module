@@ -5,7 +5,7 @@
  * Developed for the A² Fab Lab at the University of Florida.
  * Root Module that handles installing, uninstalling and hooking together
  * the child modules for the Lab User extensions. Login, registration, account
- * management and applying charges are all covered.
+ * management are all covered.
  *
  * Thomas R Storey, 2015
  * Licensed under MIT License, see LICENSE.TXT
@@ -34,7 +34,7 @@
        'autoload' => true,
        'singular' => true,
        'permanent' => false,
-       'installs' => array("UserFormBuilder","Charge", "ProcessCharge", "ProcessItem")
+       'installs' => array("LabUserFormBuilder")
      );
    }
 
@@ -113,35 +113,9 @@
    }
 
    /**
-   *
-   */
-
-   public static function getFields(){
-     return array(
-       'charge_fields' => array(
-         'title' => 'PageTitle',
-         'acct_type' => 'FieldtypeText',
-         'item_type' => 'FieldtypePage',
-         'ufid' => 'FieldtypeText',
-         'amount' => 'FieldtypeFloat',
-         'ref_number' => 'FieldtypeText',
-         'timestamp' => 'FieldtypeText',
-         'term' => 'FieldtypeText',
-         'due_date' => 'FieldtypeText',
-         'reversal' => 'FieldtypeCheckbox',
-       ),
-       'item_fields' => array(
-         'title' => 'PageTitle',
-         'type_code' => 'FieldtypeText',
-         'description' => 'FieldtypeTextarea'
-       )
-     );
-   }
-
-   /**
    * Get info for inputfields for all the forms handled by this module.
    * login, register, change password, reset password request, reset password,
-   * enter orientation code, send/edit charge file
+   * enter orientation code
    */
 
    public static function getInputfields(){
@@ -295,25 +269,7 @@
           'name' => 'reset',
           'value' => 'Send Password Reset Link'
         )
-      ),
-      'charge_form' => array( // for backend: send charge file
-        'charge_preview' => array(
-          'type' => 'InputfieldTextarea',
-          'label' => 'Charge Preview',
-          'id' => 'charge_preview',
-          'name' => 'charge_preview',
-          'value' => '',
-          'required' => true
-        ),
-        'charge' => array(
-          'type' => 'InputfieldSubmit',
-          'label' => 'Submit Charge',
-          'id' => 'charge',
-          'name' => 'charge',
-          'value' => 'Submit Charge'
-        )
       )
-     );
    }
 
    /**
@@ -326,30 +282,10 @@
      $this->inputfields = $this->getInputfields();
      $this->loginPageID = $this->data["login_page_id"];
      $this->registerPageID = $this->data["register_page_id"];
-     $this->accountPageID = $this->data["account_page_id"];
-     $this->chargesPageID = wire('pages')->get("name=charges")->id;
+     $this->accountPageID = $this->data["account_page_id"];;
      $this->resetPassPageID = $this->data["reset_page_id"];
-     $this->editPath = wire('config')->urls->admin.'charger/chargess/edit?id=';
      $this->response = array();
-     // special request handlin1g
-
-
-     if(wire('input')->get->confirm_email){
-       //confirm registration
-       //set privileges (oh yeah, need to define those on install...)
-       $u = wire('users')->get(wire('input')->get->confirm_email);
-       if($u->id){
-         $u->of(false);
-         //user is now, confirmed, but not oriented
-         $u->roles->add("pre-user");
-         $u->save();
-         $u->of(true);
-       }
-       //send email
-       wireMail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
-       $this->data["confirm_subject"], $this->data["confirm_body"]);
-       $this->addHookAfter("TemplateFile::render", $this, "hookBuildEmailConfirmed");
-     }
+     // special request handling
 
    }
 
@@ -360,14 +296,14 @@
    public function ready(){
 
      // Handle the results of login, logout, register, password reset,
-     // password change, and submit charge forms
+     // password change forms
      $this->handleLogin();
      $this->handleLogout();
      $this->handleRegister();
+     $this->handleConfirmRegistration();
      $this->handleRequestReset();
      $this->handlePassChange();
      $this->handleOrientationCode();
-     $this->handleSubmitCharge();
 
      // we use the ready function for page hooks because by now we know what
      // page is being loaded
@@ -467,6 +403,25 @@
      }
    }
 
+   protected function handleConfirmRegistration(){
+     if(wire('input')->get->confirm_email){
+       //confirm registration
+       //set privileges
+       $u = wire('users')->get(wire('input')->get->confirm_email);
+       if($u->id){
+         $u->of(false);
+         //user is now, confirmed, but not oriented
+         $u->roles->add("subuser");
+         $u->save();
+         $u->of(true);
+       }
+       //send email
+       wireMail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
+       $this->data["confirm_subject"], $this->data["confirm_body"]);
+       $this->addHookAfter("TemplateFile::render", $this, "hookBuildEmailConfirmed");
+     }
+   }
+
    protected function handleRequestReset(){
      //the user just clicked send on the send password reset link form
      //we will make sure a user exists with that email, and then send a new
@@ -517,17 +472,6 @@
    *
    */
 
-   protected function handleSubmitCharge(){
-    //  the admin just clicked on the submit charge button
-     if($this->input->post->charge)
-     $charge = new Charge($this->input->post);
-     $charge->submit();
-   }
-
-   /**
-   *
-   */
-
    protected function handleOrienationCode(){
      if($ocode = $this->input->post->submit_orientation){
        if($ocode == $this->data["orientation_code"]){
@@ -566,11 +510,6 @@
        $this->addHookAfter("TemplateFile::render", $this, "buildAccountForm");
      }
 
-     if($page->id == $this->chargesPageID){
-       // add tab for submit charge to edit charge page
-       $this->addHookAfter("ProcessPageEdit::buildForm", $this, "buildChargesForm");
-     }
-
      if($page->id == $this->resetPassPageID){
        //render password reset request form
        $this->addHookAfter("TemplateFile::render", $this, "buildResetRequestForm");
@@ -582,8 +521,7 @@
    */
 
    protected function buildLoginForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event);
-    //  $event->return = str_replace("[login]", $builder->loginForm(), $event->return);
+     $builder = new LabUserFormBuilder($event, $this->response);
     $event->return = str_replace("[login]", $builder->buildForm("login"), $event->return);
    }
 
@@ -592,8 +530,7 @@
    */
 
    protected function buildRegisterForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event);
-    //  $event->return = str_replace("[register]", $builder->registerForm(), $event->return);
+     $builder = new LabUserFormBuilder($event, $this->response);
     $event->return = str_replace("[register]", $builder->buildForm("register"), $event->return);
 
    }
@@ -603,22 +540,20 @@
    */
 
    protected function buildAccountForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event);
-    //  $event->return = str_replace("[account]", $builder->accountForm(), $event->return);
+     $builder = new LabUserFormBuilder($event, $this->response);
+    // if uploader or charger modules are installed, inject tables of associated
+    // uploads and charges
+    $uploadTable = "";
+    $chargeTable = "";
+    if(wire('modules')->get("Uploader")->id){
+      $uploadTable.=$builder->buildUploadsTable();
+    }
+    if(wire('modules')->get("Charger")->id){
+      $chargeTable.=$builder->buildChargesTable();
+    }
     $event->return = str_replace("[account]",
-    $builder->buildForm("account").$builder->buildForm("orientation").$builder->buildUploadsTable().$builder->buildChargesTable(),
+    $builder->buildForm("account").$builder->buildForm("orientation").$uploadTable.$chargeTable,
     $event->return);
-   }
-
-   /**
-   *
-   */
-
-   protected function buildChargeForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event);
-     $form = $event->return;
-     $form->append($builder->chargeTab());
-     $event->return = $form;
    }
 
    /**
@@ -646,60 +581,6 @@
        $p->save();
      }
      return $p;
-   }
-
-   /**
-   *
-   */
-
-   private function getProcessListPage(){
-     $p = $this->wire('pages')->get("name=charger");
-     if(!$p->id){
-       $p = new Page();
-       $p->template = "admin";
-       $p->name = "charger";
-       $p->title = "Charger";
-       $p->process = $this->wire('modules')->get('ProcessList');
-       $p->parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
-       $p->save();
-     }
-     return $p;
-   }
-
-   /**
-   *
-   */
-
-   private function getTemplate($fieldsArray, $type){
-     $t = $this->templates->get("name=".$type);
-     if(!$t->id){
-         $t = new Template();
-         $t->name = $type;
-         $t->tags = "user";
-         $t->noChildren = 0;
-         $t->noParents = 0;
-         $t->fieldgroup = $this->getFieldgroup($fieldsArray, $type);
-         $t->save();
-     }
-     return $t;
-   }
-
-   /**
-   *
-   */
-
-   private function getFieldgroup($fieldsArray, $type){
-     $fg = $this->fieldgroups->get("name=".$type);
-     if(!$fg->id){
-         $fg = new Fieldgroup();
-         $fg->name = $type;
-         foreach ($fieldsArray as $name => $kind) {
-             $fg->append($this->getField($name, $kind));
-         }
-         $fg->save();
-     }
-
-     return $fg;
    }
 
    /**
@@ -819,11 +700,6 @@
      $loginPage = $this->getFrontendPage("login", "Login", "/", "[login]");
      $registerPage = $this->getFrontendPage("register", "Sign Up", "/", "[register]");
      $accountPage = $this->getFrontendPage("account", "Account", "/", "[account]");
-     // create Charger page, assign ProcessList process
-     $chargerPage = getProcessListPage();
-     // create Charge template, create item template
-     $chargerTemplate = getTemplate($fields['charge_fields'], "charge");
-     $chargerTemplate = getTemplate($fields['item_fields'], "item");
      // add ufid to User template
      $userfields = wire('templates')->get("name=user")->fields;
      if(!$userfields->has("ufid")){
@@ -831,15 +707,14 @@
        $userfields->add($ufidField);
        $userfields->save();
      }
-     // TODO: create basic_user, user, intern, admin roles (user only after orientation)
      // TODO: provide inputfield on account page that accepts a code received at orientation
      //  for self-orientation-activation
      // save login, register, account pageids to the config
-     wire('roles')->add("pre-user");
-     wire('roles')->add("user");
-     wire('roles')->add('intern');
-     wire('roles')->add('assistant');
-     wire('roles')->add('admin');
+     wire('roles')->add("tmpuser"); //pre orientation
+     wire('roles')->add("user"); //post orientation - full user
+     wire('roles')->add('intern'); //lab interns
+     wire('roles')->add('assistant'); //lab assistants
+     wire('roles')->add('admin'); //lab director and tech people
      $defaults['login_page_id'] = $loginPage->id;
      $defaults['register_page_id'] = $registerPage->id;
      $defaults['account_page_id'] = $accountPage->id;
@@ -856,23 +731,12 @@
      $this->deletePageByName("login");
      $this->deletePageByName("register");
      $this->deletePageByName("account");
-     // delete all charge pages, delete all item pages
-     $this->deletePagesByTemplate("charge");
-     $this->deletePagesByTemplate("item");
-     // delete charge list page, item list page
-     $this->deletePagesByProcess(array("ProcessCharge", "ProcessItem"));
-     // delete charger list page
-     $this->deletePageByName("charger");
-     // delete charge template, delete item template
-     $this->deleteTemplateByName("charge");
-     $this->deleteTemplateByName("item");
-     // delete charge fields, delete charge item fields
-     $this->deleteFields($fields['charge_fields']);
-     $this->deleteFields($fields['item_fields']);
      // remove ufid field from user template
      $userfields = wire('templates')->get("name=user")->fields;
+     $userfields->of(false);
      $userfields->remove("name=ufid");
      $userfields->save();
+     $userfields->of(true);
    }
 
    /**
