@@ -274,6 +274,14 @@
           'value' => 'Send Code'
         )
       ),
+      'resend_form' => array( //resend account confirmation email
+          'resend' => array(
+              'type' => 'submit',
+              'id' => 'resend',
+              'name' => 'resend',
+              'value' => 'Resend Confirmation Email'
+          )
+      ),
       'reset_request_form' => array( // send password reset email
         'email' => array(
           'type' => 'email',
@@ -332,6 +340,7 @@
      $this->handleRequestReset();
      $this->handlePassChange();
      $this->handleOrientationCode();
+     $this->handleResend();
 
      // we use the ready function for page hooks because by now we know what
      // page is being loaded
@@ -423,14 +432,15 @@
  		    // Send email confirming registration, and providing link to confirm
         // email address
         $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
-        wireMail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
-        $this->data["register_subject"], str_replace("[url]", $cofirmurl, $this->data["register_body"]));
-        //login the new user
- 				wire('session')->login($user, $pass);
-        wire('session')->redirect($page->httpUrl);
- 				}  else {
- 					wire('session')->login_error = 'Login Failed. Please try again, or use the forgot password link below.';
- 				}
+        if($this->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
+          $this->data["register_subject"], str_replace("[url]", $confirmurl, $this->data["register_body"]))){
+            //login the new user
+           wire('session')->login($user, $pass);
+           wire('session')->redirect($page->httpUrl);
+        }
+ 			}  else {
+ 				wire('session')->login_error = 'Login Failed. Please try again, or use the forgot password link below.';
+ 			}
      }
    }
 
@@ -447,7 +457,7 @@
          $u->of(true);
          $response[] = "<p class='message'>Email Address Confirmed!</p>";
          //send email
-         wireMail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
+         $this->sendEmail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
          $this->data["confirm_subject"], $this->data["confirm_body"]);
          $acctPage = wire('pages')->get($this->accountPageID);
          wire('session')->redirect($acctPage->httpUrl."?addrconfirm=1");
@@ -470,11 +480,29 @@
         $user->pass = $newpass;
         $user->save();
         $user->of(true);
-        wireMail($resetuser->email, $resetuser->name,
+        $this->sendEmail($resetuser->email, $resetuser->name,
         $this->data['contact_email'], $this->data['contact_name'],
         $this->data['reset_subject'], str_replace("[pass]", $newpass, $this->data['reset_body']));
        } else {
          $this->response[] = "<p class='error'>No user found with that email address.</p>";
+       }
+     }
+   }
+
+   /**
+   *
+   */
+
+   protected function handleResend(){
+     if(wire('input')->post->resend && wire('user')->isLoggedIn()){
+       $u = wire('user');
+       $page = wire('page');
+       $email = $u->email;
+       $user = $u->name;
+       $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
+       if($this->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
+         $this->data["register_subject"], str_replace("[url]", $confirmurl, $this->data["register_body"]))){
+          $this->response[] = "<p class='message'>Confirmation Email Sent! Make sure to check your spam folder.</p>";
        }
      }
    }
@@ -561,6 +589,7 @@
     } else {
       wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
     }
+    $this->response = array();
    }
 
    /**
@@ -574,7 +603,7 @@
     } else {
       wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
     }
-
+    $this->response = array();
    }
 
    /**
@@ -583,23 +612,24 @@
 
    protected function buildAccountForm(HookEvent $event){
      if(wire('user')->isLoggedIn()){
+       if(wire('input')->get->addrconfirm){
+         $this->response[] = "<p class='message'>Email Address Confirmed!</p>";
+       }
        $builder = new LabUserFormBuilder($event, $this->response);
       // if uploader or charger modules are installed, inject tables of associated
       // uploads and charges
       $uploadTable = "";
       $chargeTable = "";
-      if(wire('modules')->get("Uploader")->id){
+
+      if(wire('modules')->isInstalled("Uploader")){
         $uploadTable.=$builder->buildUploadsTable();
       }
-      if(wire('modules')->get("Charger")->id){
+      if(wire('modules')->isInstalled("Charger")){
         $chargeTable.=$builder->buildChargesTable();
       }
       $event->return = str_replace("[account]",
-      $builder->buildForm("account").$builder->buildForm("orientation").$uploadTable.$chargeTable,
+      $builder->buildForm("account").$builder->buildForm("orientation").$builder->buildForm("resend").$uploadTable.$chargeTable,
       $event->return);
-      if(wire('input')->get->addrconfirm){
-        $event->return = "<p class='message'>Email Address Confirmed!</p>".$event->return;
-      }
     } else {
       wire('session')->redirect(wire('pages')->get($this->loginPageID)->httpUrl);
     }
@@ -609,9 +639,18 @@
    *
    */
 
+   public function clearResponse(){
+     $this->response = array();
+   }
+
+   /**
+   *
+   */
+
    protected function buildResetRequestForm(HookEvent $event){
      $builder = new LabUserFormBuilder($event);
      $event->return = str_replace("[reset]", $builder->buildForm("reset_request"), $event->return);
+     $this->response = array();
    }
 
    /**
@@ -676,72 +715,6 @@
    *
    */
 
-   private function deletePagesByTemplate($name){
-     $pages = $this->wire('pages')->find("template=$name, include=all, check_access=0");
-       foreach ($pages as $key => $p) {
-         $this->message("Page:" . $key . " => " . $p);
-         $this->message("delete page: " . $p->name);
-         $this->wire('pages')->delete($p, true);
-       }
-   }
-
-   /**
-   *
-   */
-
-   private function deletePagesByProcess($prarray){
-     foreach ($prarray as $pname) {
-       $this->message("process page: " . $pname);
-       $id = wire('modules')->getModuleID($pname);
-       $this->message("Module ID: $id");
-       if($id){
-           $ppgs = wire("pages")->find("process=$id, include=all, check_access=0");
-           foreach ($ppgs as $key => $page) {
-               $this->message("delete process page: " . $page->name);
-               $this->wire("pages")->delete($page, true);
-           }
-       }
-     }
-   }
-
-   /**
-   *
-   */
-
-   private function deleteTemplateByName($name){
-       $this->message("Template:" . $name);
-       $template = wire('templates')->get($name);
-       $fg = wire('fieldgroups')->get($name);
-       if($template->id){
-         $this->message("delete template: " . $template->name);
-         $this->wire("templates")->delete($template);
-
-       }
-       if($fg->id){
-         $this->message("delete fieldgroup: " . $fg->name);
-         $this->wire("fieldgroups")->delete($fg);
-       }
-   }
-
-   /**
-   *
-   */
-
-   private function deleteFields($fields){
-     foreach($fields as $key => $f){
-       $this->message("Field:" . $key . " => " . $f);
-       $field = $this->wire('fields')->get($key);
-       if($field->id && !strcmp($field->tags, "user")) {
-         $this->message("delete field: " . $field->name);
-         $this->wire('fields')->delete($field);
-       }
-     }
-   }
-
-   /**
-   *
-   */
-
    protected function flattenConfig($array){
      // returns an array that has just the key,value relations of the config arrays
      // removes the types and labels
@@ -750,6 +723,18 @@
        $out[$key] = $value['value'];
      }
      return $out;
+   }
+
+   /**
+   *
+   */
+
+   protected function sendEmail($to, $toName, $from, $fromName, $subject, $body){
+     $mailer = wireMail();
+     $mailer->to($to, $toName)->from($from, $fromName);
+     $mailer->subject($subject)->body($body);
+     $recipients = $mailer->send();
+     return $recipients;
    }
 
    /**

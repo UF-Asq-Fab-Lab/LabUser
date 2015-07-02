@@ -98,6 +98,7 @@
      foreach ($this->response as $value) {
        $res_str.=$value;
      }
+     $this->response = array();
      return $res_str.$form;
    }
 
@@ -105,22 +106,29 @@
     //  build a list of uploadpage files, displaying their filename and status
     // may be best to build my own markup in this case
     // get all uploads by this user
-    $uploads = $pages->find("ufid=$user->ufid, template=upload, check_access=0, include=all");
-    $out = "<table class='lab-user-uploads-table'>\n";
-    foreach ($uploads as $key => $value) {
-      $out .= "<tr class=lab-user-uploads-row>\n";
-      $out .= sprintf("<td>%s</td>", $value->upload_file->name);
-      $out .= sprintf("<td>%s</td>", $value->timestamp);
-      $out .= sprintf("<td>%s</td>", $value->status); // this should work
-      $out .= "</tr>";
+    $user = wire('user');
+    if($user->isLoggedIn()){
+      $uploads = wire('pages')->find("ufid=$user->ufid, template=upload, check_access=0, include=all");
+      $out = "<table class='lab-user-uploads-table'>\n";
+      foreach ($uploads as $key => $value) {
+        if($value->upload_file && $value->timestamp && $value->status){
+          $out .= "<tr class=lab-user-uploads-row>\n";
+          $out .= sprintf("<td>%s</td>", $value->upload_file->name);
+          $out .= sprintf("<td>%s</td>", $value->timestamp);
+          $out .= sprintf("<td>%s</td>", $value->status); // this should work
+          $out .= "</tr>";
+        }
+      }
+      return $out .= "</table>";
+    } else {
+      return "";
     }
-    return $out .= "</table>";
    }
 
    public function buildChargesTable(){
-     $uploads = $pages->find("ufid=$user->ufid, template=charge, check_access=0, include=all");
+     $charges = wire('pages')->find("ufid=$user->ufid, template=charge, check_access=0, include=all");
      $out = "<table class='lab-user-charges-table'>\n";
-     foreach ($uploads as $key => $value) {
+     foreach ($charges as $key => $value) {
        $out .= "<tr class=lab-user-charges-row>\n";
        $out .= sprintf("<td>%s</td>", $value->title);
        $out .= sprintf("<td>%s</td>", $value->item);
