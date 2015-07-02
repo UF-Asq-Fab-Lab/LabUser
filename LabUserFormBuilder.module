@@ -41,7 +41,7 @@
      $this->config_data = $this->modules->getModuleConfigData("LabUser");
    }
 
-   public function buildForm($formtype){
+   public function buildAdminForm($formtype){
      //generic formbuider
      //build something using the inputfield form, return the rendered output
      $wrapper = $this->modules->get("InputfieldForm");
@@ -65,11 +65,40 @@
      }
     //  $cssinclude = '<link rel="stylesheet" type="text/css" href="%s"><link rel="stylesheet" type="text/css" href="%s">';
     //  $cssinclude = sprintf($cssinclude, $this->config->urls->$class . "$class.css", $this->config->urls->adminTemplates."styles/font-awesome/css/font-awesome.min.css");
+     return $res_str.$wrapper->render();
+   }
+
+   public function buildForm($formtype){
+     $inputfields = $this->modules->get("LabUser")->getInputfields();
+     $formfields = $inputfields[$formtype."_form"];
+
+     $form = "<form id='$formtype' class='LabUserForm' action='./' method='post'>";
+     foreach ($formfields as $field => $attrs) {
+       if(array_key_exists("label", $attrs)){
+         $label = $attrs["label"];
+         $form.="<label for='$field'>$label</label>";
+       }
+       if($attrs["type"] == "select"){
+        //  TODO: get select params
+       }
+       $placeholder = "";
+       if(array_key_exists("placeholder", $attrs)){
+         $placeholder = $attrs["placeholder"];
+       }
+       $required = 0;
+       if(array_key_exists("required", $attrs)){
+         $required = 1;
+       }
+       $form.=sprintf("<p class='LabUserFormField'><input type='%s' id='%s' name='%s' required='%d' placeholder='%s' value='%s'></input></p>",
+       $attrs['type'], $attrs['id'], $attrs['name'], $required, $placeholder, $attrs['value']);
+     }
+     $form.="</form>";
+
      $res_str = "";
-     foreach ($this->reponse as $value) {
+     foreach ($this->response as $value) {
        $res_str.=$value;
      }
-     return $res_str.$wrapper->render();
+     return $res_str.$form;
    }
 
    public function buildUploadsTable(){

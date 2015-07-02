@@ -24,6 +24,31 @@
    //these will be passed to the form builder object upon initialization for
    //conditional form rendering.
    protected $response;
+   protected $roles = array(
+     "tmpuser" => array(
+       "page-view"
+     ),
+     "user" => array(
+       "page-view", "profile-edit"
+     ),
+     "intern" => array(
+       "page-view", "profile-edit", "page-edit", "page-delete"
+     ),
+     "assistant" => array(
+       "page-view", "profile-edit", "page-edit", "page-delete", "page-move", "page-lock", "user-admin"
+     ),
+     "admin" => array(
+       "page-view",
+       "profile-edit",
+       "page-edit",
+       "page-delete",
+       "page-move",
+       "page-lock",
+       "page-sort",
+       "page-template",
+       "user-admin"
+     )
+   );
 
    public static function getModuleInfo(){
      return array(
@@ -122,7 +147,7 @@
      return array (
       'login_form' => array( // login form
         'user' => array(
-          'type' => 'InputfieldText',
+          'type' => 'text',
           'label' => 'Username',
           'id' => 'user',
           'name' => 'user',
@@ -130,7 +155,7 @@
           'value' => ''
         ),
         'pass' => array(
-          'type' => 'InputfieldPassword',
+          'type' => 'password',
           'label' => 'Password',
           'id' => 'pass',
           'name' => 'pass',
@@ -138,8 +163,7 @@
           'value' => ''
         ),
         'login' => array(
-          'type' => 'InputfieldSubmit',
-          'label' => 'Login',
+          'type' => 'submit',
           'id' => 'login',
           'name' => 'login',
           'value' => 'Login'
@@ -147,7 +171,7 @@
       ),
       'register_form' => array( // register form
         'username' => array(
-          'type' => 'InputfieldText',
+          'type' => 'text',
           'label' => 'Username',
           'id' => 'user',
           'name' => 'user',
@@ -155,7 +179,7 @@
           'value' => ''
         ),
         'email' => array(
-          'type' => 'InputfieldEmail',
+          'type' => 'email',
           'label' => 'Email Address',
           'id' => 'email',
           'name' => 'email',
@@ -163,7 +187,7 @@
           'value' => ''
         ),
         'confirm_email' => array(
-          'type' => 'InputfieldEmail',
+          'type' => 'email',
           'label' => 'Confirm Email',
           'id' => 'confirm_email',
           'name' => 'confirm_email',
@@ -171,7 +195,7 @@
           'value' => ''
         ),
         'ufid' => array(
-          'type' => 'InputfieldText',
+          'type' => 'text',
           'label' => 'UFID Number',
           'id' => 'ufid',
           'name' => 'ufid',
@@ -180,7 +204,7 @@
           'placeholder' => '########'
         ),
         'pass' => array(
-          'type' => 'InputfieldPassword',
+          'type' => 'password',
           'label' => 'Password',
           'id' => 'pass',
           'name' => 'pass',
@@ -188,7 +212,7 @@
           'value' => ''
         ),
         'confirm_pass' => array(
-          'type' => 'InputfieldPassword',
+          'type' => 'password',
           'label' => 'Confirm Password',
           'id' => 'confirm_pass',
           'name' => 'confirm_pass',
@@ -196,8 +220,7 @@
           'value' => ''
         ),
         'register' => array(
-          'type' => 'InputfieldSubmit',
-          'label' => 'Register',
+          'type' => 'submit',
           'id' => 'register',
           'name' => 'register',
           'value' => 'Register'
@@ -205,7 +228,7 @@
       ),
       'account_form' => array( // change password form
         'old_pass' => array(
-          'type' => 'InputfieldPassword',
+          'type' => 'password',
           'label' => 'Current Password',
           'id' => 'old_pass',
           'name' => 'old_pass',
@@ -213,7 +236,7 @@
           'value' => ''
         ),
         'new_pass' => array(
-          'type' => 'InputfieldPassword',
+          'type' => 'password',
           'label' => 'New Password',
           'id' => 'new_pass',
           'name' => 'new_pass',
@@ -221,7 +244,7 @@
           'value' => ''
         ),
         'confirm_new_pass' => array(
-          'type' => 'InputfieldPassword',
+          'type' => 'password',
           'label' => 'Confirm New Password',
           'id' => 'confirm_new_pass',
           'name' => 'confirm_new_pass',
@@ -229,8 +252,7 @@
           'value' => ''
         ),
         'change_pass' => array(
-          'type' => 'InputfieldSubmit',
-          'label' => 'Change Password',
+          'type' => 'submit',
           'id' => 'change_pass',
           'name' => 'change_pass',
           'value' => 'Change Password'
@@ -238,7 +260,7 @@
       ),
       'orientation_form' => array( // send orientation code
         'orientation_code' => array(
-          'type' => 'InputfieldText',
+          'type' => 'text',
           'label' => 'Orientation Code',
           'id' => 'orientation_code',
           'name' => 'orientation_code',
@@ -246,8 +268,7 @@
           'required' => true
         ),
         'submit_orientation' => array(
-          'type' => 'InputfieldSubmit',
-          'label' => 'Send Code',
+          'type' => 'submit',
           'id' => 'submit_orientation',
           'name' => 'submit_orientation',
           'value' => 'Send Code'
@@ -255,21 +276,30 @@
       ),
       'reset_request_form' => array( // send password reset email
         'email' => array(
-          'type' => 'InputfieldEmail',
+          'type' => 'email',
           'label' => 'Email Address Associated with your Account',
           'id' => 'email',
           'name' => 'email',
           'value' => '',
           'required' => true
         ),
+        'ufid' => array(
+          'type' => 'text',
+          'label' => 'Your UFID',
+          'id' => 'ufid',
+          'name' => 'ufid',
+          'value' => '',
+          'required' => true,
+          'placeholder' => '########'
+        ),
         'reset' => array(
-          'type' => 'InputfieldSubmit',
-          'label' => 'Send Password Reset Link',
+          'type' => 'submit',
           'id' => 'reset',
           'name' => 'reset',
-          'value' => 'Send Password Reset Link'
+          'value' => 'Send New Password'
         )
       )
+    );
    }
 
    /**
@@ -285,8 +315,6 @@
      $this->accountPageID = $this->data["account_page_id"];;
      $this->resetPassPageID = $this->data["reset_page_id"];
      $this->response = array();
-     // special request handling
-
    }
 
    /**
@@ -311,13 +339,14 @@
    }
 
    protected function handleLogin(){
-     if($input->post->login){
+     $page = wire('page');
+     if(wire('input')->post->login){
        $this->response = array();
        //login the user
-       $user = $sanitizer->username($input->post->user);
-     	 $pass = $input->post->pass;
+       $user = wire('sanitizer')->username(wire('input')->post->user);
+     	 $pass = wire('input')->post->pass;
        if(wire("session")->login($user, $pass)){
-         $session->redirect($page->path);
+        //  wire('session')->redirect($config->urls->root);
        } else {
          $this->response[] = "<p class='error'>Login Failed. Make sure your username and password are correct.</p>";
        }
@@ -325,16 +354,18 @@
    }
 
    protected function handleLogout(){
-     if($input->get->logout == 1) {
+     $page = wire('page');
+     if(wire('input')->get->logout == 1) {
        //logout the user
        //needless to say, the logout button needs to get with a logout param
-     	$session->logout();
-      $session->redirect($page->path);
+     	wire('session')->logout();
+      wire('session')->redirect($page->httpUrl);
      }
    }
 
    protected function handleRegister(){
-     if($input->post->register){
+     $page = wire('page');
+     if(wire('input')->post->register){
        //register the user
        $this->response = array();
        $user = wire('sanitizer')->name(wire('input')->post->user);
@@ -347,14 +378,14 @@
  			if(strlen($user) == 0){
  				$this->response[] = "<p class='error'>Only alphanumeric characters, '_', and '.' are allowed.</p>";
  			}
- 			$pass = $sanitizer->text($input->post->pass);
- 			$confirmpass = $sanitizer->text($input->post->confirm_pass);
+ 			$pass = wire('sanitizer')->text(wire('input')->post->pass);
+ 			$confirmpass = wire('sanitizer')->text(wire('input')->post->confirm_pass);
  			if($pass != $confirmpass){
  				$this->response[] = "<p class='error'>Passwords must match.</p>";
  			}
- 			$email = $sanitizer->email($input->post->email);
-      $confirmemail = $sanitizer->email($input->post->confirm_email);
- 			$existingEmail = $users->get("email=".$email);
+ 			$email = wire('sanitizer')->email(wire('input')->post->email);
+      $confirmemail = wire('sanitizer')->email(wire('input')->post->confirm_email);
+ 			$existingEmail = wire('users')->get("email=".$email);
  			if(strlen($email) == 0){
  				$this->response[] = "<p class='error'>Must be a valid email.</p>";
  			}
@@ -364,8 +395,8 @@
       if($confirmemail != $email){
         $this->response[] = "<p class='error'>Email and confirmation must match.</p>";
       }
- 			$ufid = $sanitizer->text($input->post->ufid);
- 			$existingUFID = $users->get("ufid=".$ufid);
+ 			$ufid = wire('sanitizer')->text(wire('input')->post->ufid);
+ 			$existingUFID = wire('users')->get("ufid=".$ufid);
  			if(strlen($ufid) == 8){
  				$test = preg_filter('/[^0-9]/', "", $ufid);
  				if(strlen($test) != 0){
@@ -391,12 +422,12 @@
  		    $u->of(true);
  		    // Send email confirming registration, and providing link to confirm
         // email address
-        $confirmurl = $page->httpUrl."?confirm_email=".$u->id;
-        wireMail($email, $user, $this->data["contact_email"], $this->["contact_name"],
+        $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
+        wireMail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
         $this->data["register_subject"], str_replace("[url]", $cofirmurl, $this->data["register_body"]));
         //login the new user
  				wire('session')->login($user, $pass);
-        wire('session')->redirect($page->path);
+        wire('session')->redirect($page->httpUrl);
  				}  else {
  					wire('session')->login_error = 'Login Failed. Please try again, or use the forgot password link below.';
  				}
@@ -404,21 +435,23 @@
    }
 
    protected function handleConfirmRegistration(){
-     if(wire('input')->get->confirm_email){
+     if(wire('input')->get->confirm_emailaddress){
        //confirm registration
        //set privileges
-       $u = wire('users')->get(wire('input')->get->confirm_email);
+       $u = wire('users')->get(wire('input')->get->confirm_emailaddress);
        if($u->id){
          $u->of(false);
          //user is now, confirmed, but not oriented
          $u->roles->add("subuser");
          $u->save();
          $u->of(true);
+         $response[] = "<p class='message'>Email Address Confirmed!</p>";
+         //send email
+         wireMail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
+         $this->data["confirm_subject"], $this->data["confirm_body"]);
+         $acctPage = wire('pages')->get($this->accountPageID);
+         wire('session')->redirect($acctPage->httpUrl."?addrconfirm=1");
        }
-       //send email
-       wireMail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
-       $this->data["confirm_subject"], $this->data["confirm_body"]);
-       $this->addHookAfter("TemplateFile::render", $this, "hookBuildEmailConfirmed");
      }
    }
 
@@ -426,10 +459,10 @@
      //the user just clicked send on the send password reset link form
      //we will make sure a user exists with that email, and then send a new
      // password to that address
-     if($input->post->request_reset){
+     if(wire('input')->post->request_reset){
        $this->response = array();
-       $inEmail = $sanitizer->email($input->post->email);
-       $resetuser = $users->get("email=$inEmail");
+       $inEmail = wire('sanitizer')->email(wire('input')->post->email);
+       $resetuser = wire('users')->get("email=$inEmail");
        if($resetuser->id){
         //  send an email to the user with a link to reset the password
         $newpass = substr(md5(uniqid(rand(),1)),3,10);
@@ -449,13 +482,13 @@
    protected function handlePassChange(){
      // the user just clicked on the password change button in their account page.
      // we will make sure the new passwords match and update her login credentials
-     if($input->post->pass_change){
+     if(wire('input')->post->pass_change){
       //  check that old pass = current pass
       //  check that new pass = confirm new pass
-      $oldpass = $sanitizer->text($input->post->old_pass);
+      $oldpass = wire('sanitizer')->text(wire('input')->post->old_pass);
       $currentpass = $user->pass;
-      $newpass = $sanitizer->text($input->post->new_pass);
-      $confirmpass = $sanitizer->text($input->post->confirm_new_pass);
+      $newpass = wire('sanitizer')->text(wire('input')->post->new_pass);
+      $confirmpass = wire('sanitizer')->text(wire('input')->post->confirm_new_pass);
       if($oldpass == $currentpass && $newpass == $confirmpass){
         $user->of(false);
         $user->pass = $newpass;
@@ -472,7 +505,7 @@
    *
    */
 
-   protected function handleOrienationCode(){
+   protected function handleOrientationCode(){
      if($ocode = $this->input->post->submit_orientation){
        if($ocode == $this->data["orientation_code"]){
          $user->of(false);
@@ -492,6 +525,7 @@
      // we are loading. This is all routing for BUILDING FORMS. The routing
      // in init() is for handling responses/requests (what to do with a form
      // after it is uploaded)
+     $page = wire('page');
      if($page->id == $this->loginPageID){
        // hook to the TemplateFile::render function to inject a form
        // simple username + pass + submit button
@@ -521,8 +555,12 @@
    */
 
    protected function buildLoginForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event, $this->response);
-    $event->return = str_replace("[login]", $builder->buildForm("login"), $event->return);
+     if(!wire('user')->isLoggedIn()){
+       $builder = new LabUserFormBuilder($event, $this->response);
+       $event->return = str_replace("[login]", $builder->buildForm("login"), $event->return);
+    } else {
+      wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
+    }
    }
 
    /**
@@ -530,8 +568,12 @@
    */
 
    protected function buildRegisterForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event, $this->response);
-    $event->return = str_replace("[register]", $builder->buildForm("register"), $event->return);
+     if(!wire('user')->isLoggedIn()){
+       $builder = new LabUserFormBuilder($event, $this->response);
+       $event->return = str_replace("[register]", $builder->buildForm("register"), $event->return);
+    } else {
+      wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
+    }
 
    }
 
@@ -540,20 +582,27 @@
    */
 
    protected function buildAccountForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event, $this->response);
-    // if uploader or charger modules are installed, inject tables of associated
-    // uploads and charges
-    $uploadTable = "";
-    $chargeTable = "";
-    if(wire('modules')->get("Uploader")->id){
-      $uploadTable.=$builder->buildUploadsTable();
+     if(wire('user')->isLoggedIn()){
+       $builder = new LabUserFormBuilder($event, $this->response);
+      // if uploader or charger modules are installed, inject tables of associated
+      // uploads and charges
+      $uploadTable = "";
+      $chargeTable = "";
+      if(wire('modules')->get("Uploader")->id){
+        $uploadTable.=$builder->buildUploadsTable();
+      }
+      if(wire('modules')->get("Charger")->id){
+        $chargeTable.=$builder->buildChargesTable();
+      }
+      $event->return = str_replace("[account]",
+      $builder->buildForm("account").$builder->buildForm("orientation").$uploadTable.$chargeTable,
+      $event->return);
+      if(wire('input')->get->addrconfirm){
+        $event->return = "<p class='message'>Email Address Confirmed!</p>".$event->return;
+      }
+    } else {
+      wire('session')->redirect(wire('pages')->get($this->loginPageID)->httpUrl);
     }
-    if(wire('modules')->get("Charger")->id){
-      $chargeTable.=$builder->buildChargesTable();
-    }
-    $event->return = str_replace("[account]",
-    $builder->buildForm("account").$builder->buildForm("orientation").$uploadTable.$chargeTable,
-    $event->return);
    }
 
    /**
@@ -693,13 +742,27 @@
    *
    */
 
+   protected function flattenConfig($array){
+     // returns an array that has just the key,value relations of the config arrays
+     // removes the types and labels
+     $out = array();
+     foreach ($array as $key => $value) {
+       $out[$key] = $value['value'];
+     }
+     return $out;
+   }
+
+   /**
+   *
+   */
+
    public function install(){
      $defaults = self::getDefaultConfig();
-     $fields = self::getFields();
      // create login page, create register page, create account page
-     $loginPage = $this->getFrontendPage("login", "Login", "/", "[login]");
-     $registerPage = $this->getFrontendPage("register", "Sign Up", "/", "[register]");
+     $loginPage = $this->getFrontendPage("log-in", "Login", "/", "[login]");
+     $registerPage = $this->getFrontendPage("register", "Register", "/", "[register]");
      $accountPage = $this->getFrontendPage("account", "Account", "/", "[account]");
+     $resetPassPage = $this->getFrontendPage("reset-password", "Reset Password", "/", "[account]");
      // add ufid to User template
      $userfields = wire('templates')->get("name=user")->fields;
      if(!$userfields->has("ufid")){
@@ -707,17 +770,21 @@
        $userfields->add($ufidField);
        $userfields->save();
      }
-     // TODO: provide inputfield on account page that accepts a code received at orientation
-     //  for self-orientation-activation
      // save login, register, account pageids to the config
-     wire('roles')->add("tmpuser"); //pre orientation
-     wire('roles')->add("user"); //post orientation - full user
-     wire('roles')->add('intern'); //lab interns
-     wire('roles')->add('assistant'); //lab assistants
-     wire('roles')->add('admin'); //lab director and tech people
+     foreach ($this->roles as $role => $permissions) {
+       if(!wire('roles')->get($role)->id){
+         $r = wire('roles')->add($role);
+         foreach ($permissions as $p) {
+           $r->addPermission($p);
+         }
+         wire('roles')->save($r);
+       }
+     }
+     $defaults = $this->flattenConfig($defaults);
      $defaults['login_page_id'] = $loginPage->id;
      $defaults['register_page_id'] = $registerPage->id;
      $defaults['account_page_id'] = $accountPage->id;
+     $defaults['reset_page_id'] = $resetPassPage->id;
      wire('modules')->saveModuleConfigData($this, $defaults);
    }
 
@@ -726,17 +793,20 @@
    */
 
    public function uninstall(){
-     $fields = self::getFields();
      // delete login page, register page, account page,
-     $this->deletePageByName("login");
+     $this->deletePageByName("log-in");
      $this->deletePageByName("register");
      $this->deletePageByName("account");
+     $this->deletePageByName("reset-password");
+     foreach ($this->roles as $role => $permissions) {
+       if(wire('roles')->get($role)->id){
+         wire('roles')->delete(wire('roles')->get($role));
+       }
+     }
      // remove ufid field from user template
      $userfields = wire('templates')->get("name=user")->fields;
-     $userfields->of(false);
      $userfields->remove("name=ufid");
      $userfields->save();
-     $userfields->of(true);
    }
 
    /**
