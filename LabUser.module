@@ -133,6 +133,16 @@
          'type' => 'InputfieldTextarea',
          'value' => 'You requested a password reset for fablab.arts.ufl.edu. If this is the case, follow <a href="[url]">this link, if not, ignore this email.',
          'label' => 'Body text for automated password change emails. Should provide a link to confirm the password change'
+       ),
+       'oriented_subject' => array(
+         'type' => 'InputfieldText',
+         'value' => 'Fablab Orientation Confirmed!',
+         'label' => 'Subject line for automated orientation confirmation emails'
+       ),
+       'oriented_body' => array(
+         'type' => 'InputfieldTextarea',
+         'value' => 'Your orientation with the Fablab has been confirmed in our system. You now have access to upload files for 3D printing and use the scheduler to reserve equipment! Welcome. We look forward to seeing what you make!',
+         'label' => 'Body text for automated orientation confirmation emails.'
        )
      );
    }
@@ -448,18 +458,19 @@
      if(wire('input')->get->confirm_emailaddress){
        //confirm registration
        //set privileges
+       $acctPage = wire('pages')->get($this->accountPageID);
        $u = wire('users')->get(wire('input')->get->confirm_emailaddress);
-       if($u->id){
+       $tu = wire('roles')->get("tmpuser");
+       if($u->id && !$u->hasRole($tu)){
          $u->of(false);
          //user is now, confirmed, but not oriented
-         $u->roles->add("subuser");
+         $u->addRole($tu);
          $u->save();
          $u->of(true);
          $response[] = "<p class='message'>Email Address Confirmed!</p>";
          //send email
          $this->sendEmail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
          $this->data["confirm_subject"], $this->data["confirm_body"]);
-         $acctPage = wire('pages')->get($this->accountPageID);
          wire('session')->redirect($acctPage->httpUrl."?addrconfirm=1");
        }
      }
@@ -534,12 +545,17 @@
    */
 
    protected function handleOrientationCode(){
-     if($ocode = $this->input->post->submit_orientation){
-       if($ocode == $this->data["orientation_code"]){
-         $user->of(false);
-         $user->roles->add("user");
-         $user->save();
-         $user->of(true);
+     if($this->input->post->submit_orientation){
+       $ocode = $this->input->post->orientation_code;
+       $u = wire('user');
+       $ur = wire('roles')->get("user");
+       if($ocode == $this->data["orientation_code"] && $u->isLoggedIn() && !$u->hasRole($ur)){
+         $u->of(false);
+         $u->addRole($ur);
+         $u->save();
+         $u->of(true);
+         $this->sendEmail($u->email, $u->name, $this->data['contact_email'],
+         $this->data['contact_name'], $this->data['oriented_subject'], $this->data['oriented_body']);
        }
      }
    }
