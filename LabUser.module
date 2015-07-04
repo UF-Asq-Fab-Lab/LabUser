@@ -126,12 +126,12 @@
          ),
        'reset_subject' => array(
         'type' => 'InputfieldText',
-        'value' => 'Fablab Account: You changed your password',
+        'value' => 'Fablab Account: You reset your password',
         'label' => 'Subject line for automated registration emails.',
        ),
        'reset_body' => array(
          'type' => 'InputfieldTextarea',
-         'value' => 'You requested a password reset for fablab.arts.ufl.edu. If this is the case, follow <a href="[url]">this link, if not, ignore this email.',
+         'value' => 'You requested that your Fablab account password be reset. Your new password is: "[pass]".',
          'label' => 'Body text for automated password change emails. Should provide a link to confirm the password change'
        ),
        'oriented_subject' => array(
@@ -480,22 +480,27 @@
      //the user just clicked send on the send password reset link form
      //we will make sure a user exists with that email, and then send a new
      // password to that address
-     if(wire('input')->post->request_reset){
+     if(wire('input')->post->reset){
        $this->response = array();
        $inEmail = wire('sanitizer')->email(wire('input')->post->email);
-       $resetuser = wire('users')->get("email=$inEmail");
+       $inufid = wire('sanitizer')->text(wire('input')->post->ufid);
+       $resetuser = wire('users')->get("email=$inEmail, ufid=$inufid");
        if($resetuser->id){
         //  send an email to the user with a link to reset the password
         $newpass = substr(md5(uniqid(rand(),1)),3,10);
-        $user->of(false);
-        $user->pass = $newpass;
-        $user->save();
-        $user->of(true);
+        $resetuser->of(false);
+        $resetuser->pass = $newpass;
+        $resetuser->save();
+        $resetuser->of(true);
         $this->sendEmail($resetuser->email, $resetuser->name,
         $this->data['contact_email'], $this->data['contact_name'],
         $this->data['reset_subject'], str_replace("[pass]", $newpass, $this->data['reset_body']));
+        $this->response[] = "<p class='error'>Password reset! Please check your email to receive your new password.</p>";
+        if(wire('user')->isLoggedIn()){
+          wire('session')->logout();
+        }
        } else {
-         $this->response[] = "<p class='error'>No user found with that email address.</p>";
+         $this->response[] = "<p class='error'>No user found with that email address and/or ufid.</p>";
        }
      }
    }
@@ -668,7 +673,7 @@
    */
 
    protected function buildResetRequestForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event);
+     $builder = new LabUserFormBuilder($event, $this->response);
      $event->return = str_replace("[reset]", $builder->buildForm("reset_request"), $event->return);
      $this->response = array();
    }
@@ -767,7 +772,7 @@
      $loginPage = $this->getFrontendPage("log-in", "Login", "/", "[login]");
      $registerPage = $this->getFrontendPage("register", "Register", "/", "[register]");
      $accountPage = $this->getFrontendPage("account", "Account", "/", "[account]");
-     $resetPassPage = $this->getFrontendPage("reset-password", "Reset Password", "/", "[account]");
+     $resetPassPage = $this->getFrontendPage("reset-password", "Reset Password", "/", "[reset]");
      // add ufid to User template
      $userfields = wire('templates')->get("name=user")->fields;
      if(!$userfields->has("ufid")){
