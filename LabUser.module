@@ -521,22 +521,26 @@
    protected function handlePassChange(){
      // the user just clicked on the password change button in their account page.
      // we will make sure the new passwords match and update her login credentials
-     if(wire('input')->post->pass_change){
+     $u = wire('user');
+     if(wire('input')->post->change_pass && $u->isLoggedIn()){
       //  check that old pass = current pass
       //  check that new pass = confirm new pass
       $oldpass = wire('sanitizer')->text(wire('input')->post->old_pass);
-      $currentpass = $user->pass;
       $newpass = wire('sanitizer')->text(wire('input')->post->new_pass);
       $confirmpass = wire('sanitizer')->text(wire('input')->post->confirm_new_pass);
-      if($oldpass == $currentpass && $newpass == $confirmpass){
-        $user->of(false);
-        $user->pass = $newpass;
-        $user->save();
-        $user->of(true);
-        $this->response[] = "<p>Password successfully changed.</p>";
-      } else {
-        $this->response[] = "<p>Passwords provided don't match.</p>";
+      if(!wire('session')->login($u->name, $oldpass)){
+        $this->response[] = "<p class='error'>You input your current password incorrectly.</p>";
+        return;
       }
+      if($newpass != $confirmpass){
+        $this->response[] = "<p class='error'>Passwords provided don't match.</p>";
+        return;
+      }
+        $u->of(false);
+        $u->pass = $newpass;
+        $u->save();
+        $u->of(true);
+        $this->response[] = "<p class='message'>Password successfully changed.</p>";
      }
    }
 
