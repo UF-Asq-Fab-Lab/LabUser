@@ -707,7 +707,9 @@
          $f->name = $name;
          $f->type = $type;
          if(!strcmp($type, "FieldtypeFile")){
-           $f->extensions = str_replace(",", " ", self::getDefaultConfig()["allowed_filetypes"]["value"]);
+           $af = self::getDefaultConfig();
+           $af = $af["allowed_filetypes"];
+           $f->extensions = str_replace(",", " ", $af["value"]);
            $f->maxFiles = 1;
          }
          if(!strcmp($type, "FieldtypePage")){
