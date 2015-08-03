@@ -109,15 +109,22 @@
     $user = wire('user');
     if($user->isLoggedIn()){
       $uploads = wire('pages')->find("ufid=$user->ufid, template=upload, check_access=0, include=all");
-      $out = "<table class='lab-user-uploads-table'>\n";
-      foreach ($uploads as $key => $value) {
-        if($value->upload_file && $value->timestamp && $value->status){
-          $out .= "<tr class=lab-user-uploads-row>\n";
-          $out .= sprintf("<td>%s</td>", $value->upload_file->name);
-          $out .= sprintf("<td>%s</td>", $value->timestamp);
-          $out .= sprintf("<td>%s</td>", $value->status); // this should work
-          $out .= "</tr>";
+      $out = "<label class='lab-user-uploads-table-label'>Uploads Table</label>\n";
+      $out .= "<table class='lab-user-uploads-table'>\n";
+      $out .= "<tr class=lab-user-uploads-header><th>File Name</th><th>Material</th><th>Timestamp</th><th>Status</th>\n";
+      if($uploads->count()){
+        foreach ($uploads as $key => $value) {
+          if($value->upload_file && $value->timestamp && $value->status){
+            $out .= "<tr class=lab-user-uploads-row>\n";
+            $out .= sprintf("<td>%s</td>", $value->upload_file->name);
+          $out .= sprintf("<td>%s</td>", wire('pages')->get($value->material[sizeof($value->material)-1]->id)->title);
+            $out .= sprintf("<td>%s</td>", $value->timestamp);
+          $out .= sprintf("<td>%s</td>", wire('pages')->get($value->upload_status[sizeof($value->upload_status)-1]->id)->title); // this should work
+            $out .= "</tr>";
+          }
         }
+      } else {
+        $out .= "<p>No uploads to display.</p>";
       }
       return $out .= "</table>";
     } else {
