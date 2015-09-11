@@ -1,8 +1,8 @@
 <?php
 /**
- * A²Fab Lab User Extensions Module
+ * InfinityFab Lab User Extensions Module
  *
- * Developed for the A² Fab Lab at the University of Florida.
+ * Developed for the Infinity Fab Lab at the University of Florida.
  * Root Module that handles installing, uninstalling and hooking together
  * the child modules for the Lab User extensions. Login, registration, account
  * management are all covered.
@@ -52,8 +52,8 @@
 
    public static function getModuleInfo(){
      return array(
-       'title' => 'A² Fab Lab User Extensions',
-       'summary' => 'The Root Module for the A² Fab Lab User Extensions',
+       'title' => 'Infinity Fab Lab User Extensions',
+       'summary' => 'The Root Module for the Infinity Fab Lab User Extensions',
        'version' => 100,
        'author' => "Thomas R Storey",
        'autoload' => true,
@@ -162,7 +162,8 @@
           'id' => 'user',
           'name' => 'user',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 6
         ),
         'pass' => array(
           'type' => 'password',
@@ -170,7 +171,8 @@
           'id' => 'pass',
           'name' => 'pass',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 6
         ),
         'login' => array(
           'type' => 'submit',
@@ -180,13 +182,32 @@
         )
       ),
       'register_form' => array( // register form
+        'firstname' => array(
+          'type' => 'text',
+          'label' => 'First Name',
+          'id' => 'firstname',
+          'name' => 'firstname',
+          'required' => true,
+          'value' => '',
+          'columns' => 6
+        ),
+        'lastname' => array(
+          'type' => 'text',
+          'label' => 'Last Name',
+          'id' => 'lastname',
+          'name' => 'lastname',
+          'required' => true,
+          'value' => '',
+          'columns' => 6
+        ),
         'username' => array(
           'type' => 'text',
           'label' => 'Username',
           'id' => 'user',
           'name' => 'user',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 4
         ),
         'email' => array(
           'type' => 'email',
@@ -194,7 +215,8 @@
           'id' => 'email',
           'name' => 'email',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 4
         ),
         'confirm_email' => array(
           'type' => 'email',
@@ -202,7 +224,9 @@
           'id' => 'confirm_email',
           'name' => 'confirm_email',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 4
+
         ),
         'ufid' => array(
           'type' => 'text',
@@ -211,7 +235,18 @@
           'name' => 'ufid',
           'required' => true,
           'value' => '',
-          'placeholder' => '########'
+          'placeholder' => '########',
+          'columns' => 6
+        ),
+        'phone_num' => array(
+          'type' => 'text',
+          'label' => 'Phone Number',
+          'id' => 'phone_num',
+          'name' => 'phone_num',
+          'required' => true,
+          'value' => '',
+          'placeholder' => '###-###-####',
+          'columns' => 6
         ),
         'pass' => array(
           'type' => 'password',
@@ -219,7 +254,8 @@
           'id' => 'pass',
           'name' => 'pass',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 6
         ),
         'confirm_pass' => array(
           'type' => 'password',
@@ -227,7 +263,8 @@
           'id' => 'confirm_pass',
           'name' => 'confirm_pass',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 6
         ),
         'register' => array(
           'type' => 'submit',
@@ -243,7 +280,8 @@
           'id' => 'old_pass',
           'name' => 'old_pass',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 4
         ),
         'new_pass' => array(
           'type' => 'password',
@@ -251,7 +289,8 @@
           'id' => 'new_pass',
           'name' => 'new_pass',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 4
         ),
         'confirm_new_pass' => array(
           'type' => 'password',
@@ -259,7 +298,8 @@
           'id' => 'confirm_new_pass',
           'name' => 'confirm_new_pass',
           'required' => true,
-          'value' => ''
+          'value' => '',
+          'columns' => 4
         ),
         'change_pass' => array(
           'type' => 'submit',
@@ -299,7 +339,8 @@
           'id' => 'email',
           'name' => 'email',
           'value' => '',
-          'required' => true
+          'required' => true,
+          'columns' => 6
         ),
         'ufid' => array(
           'type' => 'text',
@@ -308,7 +349,8 @@
           'name' => 'ufid',
           'value' => '',
           'required' => true,
-          'placeholder' => '########'
+          'placeholder' => '########',
+          'columns' => 6
         ),
         'reset' => array(
           'type' => 'submit',
@@ -388,6 +430,8 @@
        //register the user
        $this->response = array();
        $user = wire('sanitizer')->name(wire('input')->post->user);
+       $firstn = wire('sanitizer')->text(wire('input')->post->firstname);
+       $lastn = wire('sanitizer')->text(wire('input')->post->lastname);
        $existingUser = wire('users')->get($user);
       //  TODO: The error messages need to be accessible from the form builder so that
       // I can conditionally render them on injecting the form.
@@ -415,6 +459,7 @@
         $this->response[] = "<p class='error'>Email and confirmation must match.</p>";
       }
  			$ufid = wire('sanitizer')->text(wire('input')->post->ufid);
+      $phone_num = wire('sanitizer')->text(wire('input')->post->phone_num);
  			$existingUFID = wire('users')->get("ufid=".$ufid);
  			if(strlen($ufid) == 8){
  				$test = preg_filter('/[^0-9]/', "", $ufid);
@@ -431,10 +476,13 @@
  				$token = bin2hex(openssl_random_pseudo_bytes(16));
  				$u = new User();
  		    $u->of(false);
+       $u->firstname = $firstn;
+       $u->lastname = $lastn;
  		    $u->name = $user;
  		   	$u->email = $email;
  		    $u->pass = $pass;
  		    $u->ufid = $ufid;
+        $u->phone_num = $phone_num;
  		    $u->passkey = $token;
  		    $u->addRole('guest');
  		    $u->save();
@@ -780,6 +828,11 @@
      if(!$userfields->has("ufid")){
        $ufidField = $this->getField("ufid", "FieldtypeText");
        $userfields->add($ufidField);
+       $userfields->save();
+     }
+     if(!$userfields->has("phone_num")){
+       $pnField = $this->getField("phone_num", "FieldtypeText");
+       $userfields->add($pnField);
        $userfields->save();
      }
      // save login, register, account pageids to the config
