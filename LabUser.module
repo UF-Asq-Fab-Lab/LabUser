@@ -89,6 +89,11 @@
          'value' => 0,
          'label' => 'Password Reset Page ID (should be filled automatically, but you may need to change it if you move the page)'
        ),
+       'user_lifetime' => array(
+         'type' => 'InputfieldInteger',
+         'value' => 10713600,
+         'label' => 'Lifetime of users in seconds. Default, 10713600, is 4 months. Users older than their lifetime will be deleted.'
+       ),
        'orientation_code' => array(
          'type' => 'InputfieldText',
          'value' => 'code',
@@ -375,6 +380,7 @@
      $this->accountPageID = $this->data["account_page_id"];;
      $this->resetPassPageID = $this->data["reset_page_id"];
      $this->response = array();
+     $this->addHook('LazyCron::every30Seconds', $this, 'expireUsers');
    }
 
    /**
@@ -485,6 +491,7 @@
         $u->phone_num = $phone_num;
  		    $u->passkey = $token;
  		    $u->addRole('guest');
+       $u->date_created = $date('m/d/Y H:i:s');
  		    $u->save();
  		    $u->of(true);
  		    // Send email confirming registration, and providing link to confirm
@@ -522,6 +529,30 @@
          wire('session')->redirect($acctPage->httpUrl."?addrconfirm=1");
        }
      }
+   }
+
+   public function expireUsers(HookEvent $e) {
+    //  get all users
+    $users = wire('users')->find('roles=user');
+    // check creation date vs now
+    foreach ($users as $key => $user) {
+      if(!$user->hasRole('intern')&&!$user->hasRole('superuser')&&!$user->hasRole('assistant')&&!$user->hasRole('admin')){
+        if(!$user->get("date_created")){
+          $user->date_created = date('m/d/Y H:i:s');
+          $user->save();
+        } else {
+          $ts_created = $user->get("date_created");
+          $ts_now = time();
+          if($ts_now - $ts_created >= $this->data["user_lifetime"]){
+            // delete user
+            // wire('users')->delete($user);
+            // expire user
+            $user->removeRole('user');
+            $user->save();
+          }
+        }
+      }
+    }
    }
 
    protected function handleRequestReset(){
