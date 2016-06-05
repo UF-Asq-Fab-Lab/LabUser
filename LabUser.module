@@ -380,7 +380,7 @@
      $this->accountPageID = $this->data["account_page_id"];;
      $this->resetPassPageID = $this->data["reset_page_id"];
      $this->response = array();
-     $this->addHook('LazyCron::every30Seconds', $this, 'expireUsers');
+    //  $this->addHook('LazyCron::every30Seconds', $this, 'expireUsers');
    }
 
    /**
@@ -491,7 +491,7 @@
         $u->phone_num = $phone_num;
  		    $u->passkey = $token;
  		    $u->addRole('guest');
-       $u->date_created = $date('m/d/Y H:i:s');
+       $u->date_created = date('m/d/Y H:i:s');
  		    $u->save();
  		    $u->of(true);
  		    // Send email confirming registration, and providing link to confirm
