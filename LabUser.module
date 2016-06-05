@@ -12,7 +12,7 @@
  *
  * http://fablab.arts.ufl.edu
  * https://github.com/UF-Asq-Fab-Lab
- *
+ * sudo rm -R /var/www/html/sandbox/fablab/site/modules/LabUser && sudo cp ~/projects/fablab/LabUser /var/www/html/sandbox/fablab/site/modules/LabUser
  */
 
  class LabUser extends WireData implements Module, ConfigurableModule {
@@ -21,8 +21,6 @@
    protected $loginPageID;
    protected $registrationPageID;
    protected $resetPassPageID;
-   //these will be passed to the form builder object upon initialization for
-   //conditional form rendering.
    protected $response;
    protected $roles = array(
      "tmpuser" => array(
@@ -58,313 +56,8 @@
        'author' => "Thomas R Storey",
        'autoload' => true,
        'singular' => true,
-       'permanent' => false,
-       'installs' => array("LabUserFormBuilder")
+       'requires' => array("FabLabModuleHelpers>=1.0.0")
      );
-   }
-
-   /**
-   *
-   */
-
-   public static function getDefaultConfig(){
-     return array(
-       'login_page_id' => array(
-        'type' => 'InputfieldInteger',
-        'value' => 0,
-        'label' => 'Login Page ID (should be filled automatically, but you may need to change it if you move the login page)',
-         ),
-       'register_page_id' => array(
-        'type' => 'InputfieldInteger',
-        'value' => 0,
-        'label' => 'Register Page ID (should be filled automatically, but you may need to change it if you move the register page)',
-         ),
-       'account_page_id' => array(
-        'type' => 'InputfieldInteger',
-        'value' => 0,
-        'label' => 'Account Page ID (should be filled automatically, but you may need to change it if you move the account page)',
-         ),
-       'reset_page_id' => array(
-         'type' => 'InputfieldInteger',
-         'value' => 0,
-         'label' => 'Password Reset Page ID (should be filled automatically, but you may need to change it if you move the page)'
-       ),
-       'user_lifetime' => array(
-         'type' => 'InputfieldInteger',
-         'value' => 10713600,
-         'label' => 'Lifetime of users in seconds. Default, 10713600, is 4 months. Users older than their lifetime will be deleted.'
-       ),
-       'orientation_code' => array(
-         'type' => 'InputfieldText',
-         'value' => 'code',
-         'label' => 'Set the code that users have to input to prove they completed an orientation. Change this every orientation session!'
-       ),
-       'contact_email' => array(
-        'type' => 'InputfieldEmail',
-        'value' => 'admin@fablab.com',
-        'label' => 'Contact email for all user-related communications',
-        ),
-       'contact_name' => array(
-        'type' => 'InputfieldText',
-        'value' => 'Fablab Admin',
-        'label' => 'Contact name for all user-related communications',
-        ),
-       'register_subject' => array(
-        'type' => 'InputfieldText',
-        'value' => 'Fablab Registration: Confirm your email address',
-        'label' => 'Subject line for automated registration emails.',
-        ),
-       'register_body' => array(
-        'type' => 'InputfieldTextarea',
-        'value' => 'Follow <a href="[url]">this link</a> to confirm your email address and activate your account!',
-        'label' => 'Body text for automated registration emails.',
-        ),
-        'confirm_subject' => array(
-         'type' => 'InputfieldText',
-         'value' => 'Fablab Registration: Thanks! Your email address is confirmed',
-         'label' => 'Subject line for automated account confirmation emails',
-         ),
-        'confirm_body' => array(
-         'type' => 'InputfieldTextarea',
-         'value' => 'Your email address has been successfully verified. Your next step is to go to an orientation if you have not already.',
-         'label' => 'Body text for automated account confirmation emails',
-         ),
-       'reset_subject' => array(
-        'type' => 'InputfieldText',
-        'value' => 'Fablab Account: You reset your password',
-        'label' => 'Subject line for automated registration emails.',
-       ),
-       'reset_body' => array(
-         'type' => 'InputfieldTextarea',
-         'value' => 'You requested that your Fablab account password be reset. Your new password is: "[pass]".',
-         'label' => 'Body text for automated password change emails. Should provide a link to confirm the password change'
-       ),
-       'oriented_subject' => array(
-         'type' => 'InputfieldText',
-         'value' => 'Fablab Orientation Confirmed!',
-         'label' => 'Subject line for automated orientation confirmation emails'
-       ),
-       'oriented_body' => array(
-         'type' => 'InputfieldTextarea',
-         'value' => 'Your orientation with the Fablab has been confirmed in our system. You now have access to upload files for 3D printing and use the scheduler to reserve equipment! Welcome. We look forward to seeing what you make!',
-         'label' => 'Body text for automated orientation confirmation emails.'
-       )
-     );
-   }
-
-   /**
-   * Get info for inputfields for all the forms handled by this module.
-   * login, register, change password, reset password request, reset password,
-   * enter orientation code
-   */
-
-   public static function getInputfields(){
-     return array (
-      'login_form' => array( // login form
-        'user' => array(
-          'type' => 'text',
-          'label' => 'Username',
-          'id' => 'user',
-          'name' => 'user',
-          'required' => true,
-          'value' => '',
-          'columns' => 6
-        ),
-        'pass' => array(
-          'type' => 'password',
-          'label' => 'Password',
-          'id' => 'pass',
-          'name' => 'pass',
-          'required' => true,
-          'value' => '',
-          'columns' => 6
-        ),
-        'login' => array(
-          'type' => 'submit',
-          'id' => 'login',
-          'name' => 'login',
-          'value' => 'Login'
-        )
-      ),
-      'register_form' => array( // register form
-        'firstname' => array(
-          'type' => 'text',
-          'label' => 'First Name',
-          'id' => 'firstname',
-          'name' => 'firstname',
-          'required' => true,
-          'value' => '',
-          'columns' => 6
-        ),
-        'lastname' => array(
-          'type' => 'text',
-          'label' => 'Last Name',
-          'id' => 'lastname',
-          'name' => 'lastname',
-          'required' => true,
-          'value' => '',
-          'columns' => 6
-        ),
-        'username' => array(
-          'type' => 'text',
-          'label' => 'Username',
-          'id' => 'user',
-          'name' => 'user',
-          'required' => true,
-          'value' => '',
-          'columns' => 4
-        ),
-        'email' => array(
-          'type' => 'email',
-          'label' => 'Email Address',
-          'id' => 'email',
-          'name' => 'email',
-          'required' => true,
-          'value' => '',
-          'columns' => 4
-        ),
-        'confirm_email' => array(
-          'type' => 'email',
-          'label' => 'Confirm Email',
-          'id' => 'confirm_email',
-          'name' => 'confirm_email',
-          'required' => true,
-          'value' => '',
-          'columns' => 4
-
-        ),
-        'ufid' => array(
-          'type' => 'text',
-          'label' => 'UFID Number',
-          'id' => 'ufid',
-          'name' => 'ufid',
-          'required' => true,
-          'value' => '',
-          'placeholder' => '########',
-          'columns' => 6
-        ),
-        'phone_num' => array(
-          'type' => 'text',
-          'label' => 'Phone Number',
-          'id' => 'phone_num',
-          'name' => 'phone_num',
-          'required' => true,
-          'value' => '',
-          'placeholder' => '###-###-####',
-          'columns' => 6
-        ),
-        'pass' => array(
-          'type' => 'password',
-          'label' => 'Password',
-          'id' => 'pass',
-          'name' => 'pass',
-          'required' => true,
-          'value' => '',
-          'columns' => 6
-        ),
-        'confirm_pass' => array(
-          'type' => 'password',
-          'label' => 'Confirm Password',
-          'id' => 'confirm_pass',
-          'name' => 'confirm_pass',
-          'required' => true,
-          'value' => '',
-          'columns' => 6
-        ),
-        'register' => array(
-          'type' => 'submit',
-          'id' => 'register',
-          'name' => 'register',
-          'value' => 'Register'
-        ),
-      ),
-      'account_form' => array( // change password form
-        'old_pass' => array(
-          'type' => 'password',
-          'label' => 'Current Password',
-          'id' => 'old_pass',
-          'name' => 'old_pass',
-          'required' => true,
-          'value' => '',
-          'columns' => 4
-        ),
-        'new_pass' => array(
-          'type' => 'password',
-          'label' => 'New Password',
-          'id' => 'new_pass',
-          'name' => 'new_pass',
-          'required' => true,
-          'value' => '',
-          'columns' => 4
-        ),
-        'confirm_new_pass' => array(
-          'type' => 'password',
-          'label' => 'Confirm New Password',
-          'id' => 'confirm_new_pass',
-          'name' => 'confirm_new_pass',
-          'required' => true,
-          'value' => '',
-          'columns' => 4
-        ),
-        'change_pass' => array(
-          'type' => 'submit',
-          'id' => 'change_pass',
-          'name' => 'change_pass',
-          'value' => 'Change Password'
-        )
-      ),
-      'orientation_form' => array( // send orientation code
-        'orientation_code' => array(
-          'type' => 'text',
-          'label' => 'Orientation Code',
-          'id' => 'orientation_code',
-          'name' => 'orientation_code',
-          'value' => '',
-          'required' => true
-        ),
-        'submit_orientation' => array(
-          'type' => 'submit',
-          'id' => 'submit_orientation',
-          'name' => 'submit_orientation',
-          'value' => 'Send Code'
-        )
-      ),
-      'resend_form' => array( //resend account confirmation email
-          'resend' => array(
-              'type' => 'submit',
-              'id' => 'resend',
-              'name' => 'resend',
-              'value' => 'Resend Confirmation Email'
-          )
-      ),
-      'reset_request_form' => array( // send password reset email
-        'email' => array(
-          'type' => 'email',
-          'label' => 'Email Address Associated with your Account',
-          'id' => 'email',
-          'name' => 'email',
-          'value' => '',
-          'required' => true,
-          'columns' => 6
-        ),
-        'ufid' => array(
-          'type' => 'text',
-          'label' => 'Your UFID',
-          'id' => 'ufid',
-          'name' => 'ufid',
-          'value' => '',
-          'required' => true,
-          'placeholder' => '########',
-          'columns' => 6
-        ),
-        'reset' => array(
-          'type' => 'submit',
-          'id' => 'reset',
-          'name' => 'reset',
-          'value' => 'Send New Password'
-        )
-      )
-    );
    }
 
    /**
@@ -372,15 +65,26 @@
    */
 
    public function init(){
-     // Initialize class variables
      $this->data = wire('modules')->getModuleConfigData($this);
-     $this->inputfields = $this->getInputfields();
-     $this->loginPageID = $this->data["login_page_id"];
-     $this->registerPageID = $this->data["register_page_id"];
-     $this->accountPageID = $this->data["account_page_id"];;
-     $this->resetPassPageID = $this->data["reset_page_id"];
-     $this->response = array();
-    //  $this->addHook('LazyCron::every30Seconds', $this, 'expireUsers');
+     $this->helper = wire('modules')->get('FabLabModuleHelpers');
+    // Need to update?
+    $old_ufid = $this->wire('fields')->get('ufid');
+    if($old_ufid){
+      // update!
+      require_once('LabUserUpdate.php');
+    }
+    // Initialize class variables
+
+    $this->loginPageID = $this->data["login_page_id"];
+    $this->registerPageID = $this->data["register_page_id"];
+    $this->accountPageID = $this->data["account_page_id"];
+    $this->resetPassPageID = $this->data["reset_page_id"];
+    $this->response = array();
+    if($this->wire('config')->debug){
+      $this->addHook('LazyCron::every30Seconds', $this, 'expireUsers');
+    } else {
+      $this->addHook('LazyCron::everyDay', $this, 'expireUsers');
+    }
    }
 
    /**
@@ -439,8 +143,7 @@
        $firstn = wire('sanitizer')->text(wire('input')->post->firstname);
        $lastn = wire('sanitizer')->text(wire('input')->post->lastname);
        $existingUser = wire('users')->get($user);
-      //  TODO: The error messages need to be accessible from the form builder so that
-      // I can conditionally render them on injecting the form.
+
       if($existingUser->id){
  				$this->response[] = "<p class='error'>Sorry, that username is already taken.</p>";
  			}
@@ -466,7 +169,7 @@
       }
  			$ufid = wire('sanitizer')->text(wire('input')->post->ufid);
       $phone_num = wire('sanitizer')->text(wire('input')->post->phone_num);
- 			$existingUFID = wire('users')->get("ufid=".$ufid);
+ 			$existingUFID = wire('users')->get("lab_user_ufid=".$ufid);
  			if(strlen($ufid) == 8){
  				$test = preg_filter('/[^0-9]/', "", $ufid);
  				if(strlen($test) != 0){
@@ -479,32 +182,29 @@
  				$this->response[] = "<p class='error'>Must have exactly eight numbers.</p>";
  			}
  			if(!count($this->response)){
- 				$token = bin2hex(openssl_random_pseudo_bytes(16));
  				$u = new User();
  		    $u->of(false);
-       $u->firstname = $firstn;
-       $u->lastname = $lastn;
+        $u->lab_user_first_name = $firstn;
+        $u->lab_user_last_name = $lastn;
  		    $u->name = $user;
  		   	$u->email = $email;
  		    $u->pass = $pass;
- 		    $u->ufid = $ufid;
-        $u->phone_num = $phone_num;
- 		    $u->passkey = $token;
+ 		    $u->lab_user_ufid = $ufid;
+        $u->lab_user_phone_number = $phone_num;
  		    $u->addRole('guest');
-       $u->date_created = date('m/d/Y H:i:s');
+        $u->lab_user_expiration_date = date('m/d/Y H:i:s');
  		    $u->save();
  		    $u->of(true);
  		    // Send email confirming registration, and providing link to confirm
         // email address
         $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
-        if($this->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
+        if($this->helper->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
           $this->data["register_subject"], str_replace("[url]", $confirmurl, $this->data["register_body"]))){
             //login the new user
            wire('session')->login($user, $pass);
-           wire('session')->redirect($page->httpUrl);
+           $accountPage = wire('pages')->get($this->data['account_page_id']);
+           wire('session')->redirect($accountPage->httpUrl."?acctreg=1");
         }
- 			}  else {
- 				wire('session')->login_error = 'Login Failed. Please try again, or use the forgot password link below.';
  			}
      }
    }
@@ -522,9 +222,8 @@
          $u->addRole($tu);
          $u->save();
          $u->of(true);
-         $response[] = "<p class='message'>Email Address Confirmed!</p>";
          //send email
-         $this->sendEmail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
+         $this->helper->sendEmail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
          $this->data["confirm_subject"], $this->data["confirm_body"]);
          wire('session')->redirect($acctPage->httpUrl."?addrconfirm=1");
        }
@@ -537,18 +236,20 @@
     // check creation date vs now
     foreach ($users as $key => $user) {
       if(!$user->hasRole('intern')&&!$user->hasRole('superuser')&&!$user->hasRole('assistant')&&!$user->hasRole('admin')){
-        if(!$user->get("date_created")){
-          $user->date_created = date('m/d/Y H:i:s');
+        if(!$user->get("lab_user_expiration_date")){
+          $user->of(false);
+          $user->lab_user_expiration_date = date('m/d/Y H:i:s', time()+($this->data['user_lifetime']*24*60*60));
           $user->save();
+          $user->of(true);
         } else {
-          $ts_created = $user->get("date_created");
+          $ts_expires = $user->get("lab_user_expiration_date");
           $ts_now = time();
-          if($ts_now - $ts_created >= $this->data["user_lifetime"]){
-            // delete user
-            // wire('users')->delete($user);
+          if($ts_now > $ts_expires){
             // expire user
+            $user->of(false);
             $user->removeRole('user');
             $user->save();
+            $user->of(true);
           }
         }
       }
@@ -563,7 +264,7 @@
        $this->response = array();
        $inEmail = wire('sanitizer')->email(wire('input')->post->email);
        $inufid = wire('sanitizer')->text(wire('input')->post->ufid);
-       $resetuser = wire('users')->get("email=$inEmail, ufid=$inufid");
+       $resetuser = wire('users')->get("email=$inEmail, lab_user_ufid=$inufid");
        if($resetuser->id){
         //  send an email to the user with a link to reset the password
         $newpass = substr(md5(uniqid(rand(),1)),3,10);
@@ -571,7 +272,7 @@
         $resetuser->pass = $newpass;
         $resetuser->save();
         $resetuser->of(true);
-        $this->sendEmail($resetuser->email, $resetuser->name,
+        $this->helper->sendEmail($resetuser->email, $resetuser->name,
         $this->data['contact_email'], $this->data['contact_name'],
         $this->data['reset_subject'], str_replace("[pass]", $newpass, $this->data['reset_body']));
         $this->response[] = "<p class='error'>Password reset! Please check your email to receive your new password.</p>";
@@ -595,9 +296,11 @@
        $email = $u->email;
        $user = $u->name;
        $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
-       if($this->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
+       if($this->helper->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
          $this->data["register_subject"], str_replace("[url]", $confirmurl, $this->data["register_body"]))){
-          $this->response[] = "<p class='message'>Confirmation Email Sent! Make sure to check your spam folder.</p>";
+          $this->response[] = "<p class='message'>Confirmation email sent! Make sure to check your spam folder.</p>";
+       } else {
+         $this->response[] = "<p class='error'>Confirmation email was not sent as a result of an error. Please wait a few minutes and try again.</p>";
        }
      }
    }
@@ -636,14 +339,27 @@
      if($this->input->post->submit_orientation){
        $ocode = $this->input->post->orientation_code;
        $u = wire('user');
+       $tur = wire('roles')->get("tmpuser");
        $ur = wire('roles')->get("user");
-       if($ocode == $this->data["orientation_code"] && $u->isLoggedIn() && !$u->hasRole($ur)){
+       if($u->hasRole($ur)){
+         $this->response[] = "<p class='message'>You are already confirmed!</p>";
+         return;
+       }
+       if(!$u->hasRole($tur)){
+         $this->response[] = "<p class='error'>Please confirm your email address before inputting your orientation code.</p>";
+         return;
+       }
+       if(!strcmp($ocode, $this->data["orientation_code"]) && $u->isLoggedIn()){
          $u->of(false);
          $u->addRole($ur);
+         $u->lab_user_expiration_date = date('m/d/Y H:i:s', time()+($this->data['user_lifetime']*24*60*60));
          $u->save();
          $u->of(true);
-         $this->sendEmail($u->email, $u->name, $this->data['contact_email'],
+         $this->helper->sendEmail($u->email, $u->name, $this->data['contact_email'],
          $this->data['contact_name'], $this->data['oriented_subject'], $this->data['oriented_body']);
+         $this->response[] = "<p class='message'>Orientation code successfully autheticated. Check your email for further instructions.</p>";
+       } else {
+         $this->response[] = "<p class='error'>Incorrect orientation code.</p>";
        }
      }
    }
@@ -658,6 +374,10 @@
      // in init() is for handling responses/requests (what to do with a form
      // after it is uploaded)
      $page = wire('page');
+     if(strpos($page->url, wire('config')->urls->admin) !== 0) {
+       $this->addHookAfter("TemplateFile::render", $this, "buildAccountInfo");
+     }
+
      if($page->id == $this->loginPageID){
        // hook to the TemplateFile::render function to inject a form
        // simple username + pass + submit button
@@ -688,8 +408,15 @@
 
    protected function buildLoginForm(HookEvent $event){
      if(!wire('user')->isLoggedIn()){
-       $builder = new LabUserFormBuilder($event, $this->response);
-       $event->return = str_replace("[login]", $builder->buildForm("login"), $event->return);
+       // get all response messages.
+       $res = "";
+       foreach ($this->response as $value) {
+         $res.=$value;
+       }
+       // render form to string.
+       $path = wire('config')->paths->siteModules."/LabUser/loginForm.inc";
+       $res .= $this->helper->renderFileToString($path);
+       $event->return = str_replace("[login]", $res, $event->return);
     } else {
       wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
     }
@@ -700,10 +427,28 @@
    *
    */
 
+   protected function buildAccountInfo(HookEvent $event){
+     // render form to string.
+     $path = wire('config')->paths->siteModules."/LabUser/accountInfo.inc";
+     $res = $this->helper->renderFileToString($path);
+     $event->return = str_replace("[account-info]", $res, $event->return);
+   }
+
+   /**
+   *
+   */
+
    protected function buildRegisterForm(HookEvent $event){
      if(!wire('user')->isLoggedIn()){
-       $builder = new LabUserFormBuilder($event, $this->response);
-       $event->return = str_replace("[register]", $builder->buildForm("register"), $event->return);
+       // get all response messages.
+       $res = "";
+       foreach ($this->response as $value) {
+         $res.=$value;
+       }
+       // render form to string.
+       $path = wire('config')->paths->siteModules."/LabUser/registerForm.inc";
+       $res .= $this->helper->renderFileToString($path);
+       $event->return = str_replace("[register]", $res, $event->return);
     } else {
       wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
     }
@@ -717,34 +462,28 @@
    protected function buildAccountForm(HookEvent $event){
      if(wire('user')->isLoggedIn()){
        if(wire('input')->get->addrconfirm){
-         $this->response[] = "<p class='message'>Email Address Confirmed!</p>";
+         $this->response[] = "<p class='message'>Email address confirmed!</p>";
        }
-       $builder = new LabUserFormBuilder($event, $this->response);
-      // if uploader or charger modules are installed, inject tables of associated
-      // uploads and charges
-      $uploadTable = "";
-      $chargeTable = "";
-
-      if(wire('modules')->isInstalled("Uploader")){
-        $uploadTable.=$builder->buildUploadsTable();
-      }
-      if(wire('modules')->isInstalled("Charger")){
-        $chargeTable.=$builder->buildChargesTable();
-      }
-      $event->return = str_replace("[account]",
-      $builder->buildForm("account").$builder->buildForm("orientation").$builder->buildForm("resend").$uploadTable.$chargeTable,
-      $event->return);
+       if(wire('input')->get->acctreg){
+         $this->response[] = "<p class='message'>Account created successfully! An email address confirmation link has been sent to the email address you provided.</p>";
+       }
+       // get all response messages.
+       $res = "";
+       foreach ($this->response as $value) {
+         $res.=$value;
+       }
+       // render form to string.
+       $acctPath = wire('config')->paths->siteModules."/LabUser/accountForm.inc";
+       $orientPath = wire('config')->paths->siteModules."/LabUser/orientationForm.inc";
+       $resendPath = wire('config')->paths->siteModules."/LabUser/resendForm.inc";
+       $res .= $this->helper->renderFileToString($acctPath);
+       $res .= $this->helper->renderFileToString($orientPath);
+       $res .= $this->helper->renderFileToString($resendPath);
+       $event->return = str_replace("[account]", $res, $event->return);
     } else {
       wire('session')->redirect(wire('pages')->get($this->loginPageID)->httpUrl);
     }
-   }
-
-   /**
-   *
-   */
-
-   public function clearResponse(){
-     $this->response = array();
+    $this->response = array();
    }
 
    /**
@@ -752,8 +491,15 @@
    */
 
    protected function buildResetRequestForm(HookEvent $event){
-     $builder = new LabUserFormBuilder($event, $this->response);
-     $event->return = str_replace("[reset]", $builder->buildForm("reset_request"), $event->return);
+     // get all response messages.
+     $res = "";
+     foreach ($this->response as $value) {
+       $res.=$value;
+     }
+     // render form to string.
+     $path = wire('config')->paths->siteModules."/LabUser/resetForm.inc";
+     $res .= $this->helper->renderFileToString($path);
+     $event->return = str_replace("[reset]", $res, $event->return);
      $this->response = array();
    }
 
@@ -761,112 +507,53 @@
    *
    */
 
-   private function getFrontendPage($name, $title, $parent, $body){
-     $p = $this->wire('pages')->get("name=$name");
-     if(!$p->id){
-       $p = new Page();
-       $p->template = "basic-page"; //user will likely want to change this to something else
-       $p->name = $name;
-       $p->title = $title;
-       $p->parent = $this->wire('pages')->get($parent);
-       $p->body = $body;
-       $p->save();
-     }
-     return $p;
-   }
-
-   /**
-   *
-   */
-
-   private function getField($name, $type){
-     $f = $this->fields->get("name=$name");
-     if(!$f->id){
-         $f = new Field();
-         $f->name = $name;
-         $f->type = $type;
-         if(!strcmp($type, "FieldtypeFile")){
-           $af = self::getDefaultConfig();
-           $af = $af["allowed_filetypes"];
-           $f->extensions = str_replace(",", " ", $af["value"]);
-           $f->maxFiles = 1;
-         }
-         if(!strcmp($type, "FieldtypePage")){
-           // TODO: custom configuration for page fieldtype?
-           $f->findPagesSelector = 'template=item, check_access=0, include=all';
-           $f->template_id = wire('templates')->get("name=item")->id;
-           $f->inputfield = "InputfieldSelect";
-         }
-         $f->label = ucwords(str_replace("_", " ", $name));
-         $f->tags = "user";
-         $f->save();
-     }
-     return $f;
-   }
-
-   /**
-   *
-   */
-
-   private function deletePageByName($name){
-     $this->message("page name: " . $name);
-     $page = $this->wire('pages')->get("name=$name, include=all, check_access=0");
-     if($page->id){
-       $this->message("delete page: " . $page->name);
-       $this->wire('pages')->delete($page, true);
-     }
-   }
-
-   /**
-   *
-   */
-
-   protected function flattenConfig($array){
-     // returns an array that has just the key,value relations of the config arrays
-     // removes the types and labels
-     $out = array();
-     foreach ($array as $key => $value) {
-       $out[$key] = $value['value'];
-     }
-     return $out;
-   }
-
-   /**
-   *
-   */
-
-   protected function sendEmail($to, $toName, $from, $fromName, $subject, $body){
-     $mailer = wireMail();
-     $mailer->to($to, $toName)->from($from, $fromName);
-     $mailer->subject($subject)->body($body);
-     $recipients = $mailer->send();
-     return $recipients;
-   }
-
-   /**
-   *
-   */
-
    public function install(){
-     $defaults = self::getDefaultConfig();
+     $defaults = wire('modules')->getModuleConfigData($this);
+     $this->helper = wire('modules')->get('FabLabModuleHelpers');
      // create login page, create register page, create account page
-     $loginPage = $this->getFrontendPage("log-in", "Login", "/", "[login]");
-     $registerPage = $this->getFrontendPage("register", "Register", "/", "[register]");
-     $accountPage = $this->getFrontendPage("account", "Account", "/", "[account]");
-     $resetPassPage = $this->getFrontendPage("reset-password", "Reset Password", "/", "[reset]");
+     $loginPage = $this->helper->getFrontendPage("log_in");
+     $loginPage->of(false);
+     $loginPage->body = "[login]";
+     $loginPage->save();
+     $loginPage->of(true);
+     $registerPage = $this->helper->getFrontendPage("register");
+     $registerPage->of(false);
+     $registerPage->body = "[register]";
+     $registerPage->save();
+     $registerPage->of(true);
+     $accountPage = $this->helper->getFrontendPage("account");
+     $accountPage->of(false);
+     $accountPage->body = "[account]";
+     $accountPage->save();
+     $accountPage->of(true);
+     $resetPassPage = $this->helper->getFrontendPage("reset_password");
+     $resetPassPage->of(false);
+     $resetPassPage->body = "[reset]";
+     $resetPassPage->save();
+     $resetPassPage->of(true);
+
      // add ufid to User template
      $userfields = wire('templates')->get("name=user")->fields;
-     if(!$userfields->has("ufid")){
-       $ufidField = $this->getField("ufid", "FieldtypeText");
-       $userfields->add($ufidField);
-       $userfields->save();
+     $opt = array(
+       "tags" => "LabUser",
+       "datetimeFormat" => "m/d/Y H:i:s"
+     );
+     $fields = array(
+       "lab_user_ufid" => array("type"=>"FieldtypeText", "options"=> $opt),
+       "lab_user_first_name" => array("type"=>"FieldtypeText", "options"=> $opt),
+       "lab_user_last_name" => array("type"=>"FieldtypeText", "options"=> $opt),
+       "lab_user_phone_number" => array("type"=>"FieldtypeText", "options"=> $opt),
+       "lab_user_expiration_date" => array("type"=>"FieldtypeDatetime", "options"=> $opt),
+     );
+     foreach ($fields as $name => $cfg) {
+       if(!$userfields->has($name)){
+         $labuserField = $this->helper->getField($name, $cfg['type'], $cfg['options']);
+         $userfields->add($labuserField);
+         $userfields->save();
+       }
      }
-     if(!$userfields->has("phone_num")){
-       $pnField = $this->getField("phone_num", "FieldtypeText");
-       $userfields->add($pnField);
-       $userfields->save();
-     }
-     // save login, register, account pageids to the config
+
+    //  add roles and permissions
      foreach ($this->roles as $role => $permissions) {
        if(!wire('roles')->get($role)->id){
          $r = wire('roles')->add($role);
@@ -876,7 +563,9 @@
          wire('roles')->save($r);
        }
      }
-     $defaults = $this->flattenConfig($defaults);
+
+     // save login, register, account pageids to the config
+     $defaults = $this->helper->pluck($defaults, 'value');
      $defaults['login_page_id'] = $loginPage->id;
      $defaults['register_page_id'] = $registerPage->id;
      $defaults['account_page_id'] = $accountPage->id;
@@ -890,41 +579,29 @@
 
    public function uninstall(){
      // delete login page, register page, account page,
-     $this->deletePageByName("log-in");
-     $this->deletePageByName("register");
-     $this->deletePageByName("account");
-     $this->deletePageByName("reset-password");
+     $this->helper->deletePageByName("log_in");
+     $this->helper->deletePageByName("register");
+     $this->helper->deletePageByName("account");
+     $this->helper->deletePageByName("reset_password");
      foreach ($this->roles as $role => $permissions) {
        if(wire('roles')->get($role)->id){
          wire('roles')->delete(wire('roles')->get($role));
        }
      }
-     // remove ufid field from user template
+     // remove lab user fields from user template
      $userfields = wire('templates')->get("name=user")->fields;
-     $userfields->remove("name=ufid");
+     $userfields->remove("name=lab_user_ufid");
+     $userfields->remove("name=lab_user_first_name");
+     $userfields->remove("name=lab_user_last_name");
+     $userfields->remove("name=lab_user_phone_number");
+     $userfields->remove("name=lab_user_expiration_date");
      $userfields->save();
-   }
-
-   /**
-   *
-   */
-
-   public static function getModuleConfigInputFields(array $data) {
-     $inputfields = new InputFieldWrapper();
-     $defaults = self::getDefaultConfig();
-
-     foreach ($defaults as $key => $value) {
-         $field = wire('modules')->get($value['type']);
-         $field->name = $key;
-         $field->label = $value['label'];
-         if(isset($data[$key])){
-           $field->value = $data[$key];
-         } else {
-           $field->value = $value['value'];
-         }
-         $inputfields->add($field);
-     }
-     return $inputfields;
+     // delete lab user fields.
+     $this->helper->deleteFields(array("lab_user_ufid",
+                                       "lab_user_phone_number",
+                                       "lab_user_expiration_date",
+                                       "lab_user_first_name",
+                                       "lab_user_last_name"), "LabUser");
    }
 
  }
