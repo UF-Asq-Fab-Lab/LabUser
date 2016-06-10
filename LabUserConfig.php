@@ -23,7 +23,17 @@ class LabUserConfig extends ModuleConfig {
         'value' => 0,
         'label' => 'Password Reset Page ID (should be filled automatically, but you may need to change it if you move the page).'
       ),
-      'user_lifetime' => array(
+      'laser_user_lifetime' => array(
+        'type' => 'InputfieldInteger',
+        'value' => 90,
+        'label' => 'Lifetime of users in days. Users older than their lifetime will be deleted.'
+      ),
+      'cnc_user_lifetime' => array(
+        'type' => 'InputfieldInteger',
+        'value' => 90,
+        'label' => 'Lifetime of users in days. Users older than their lifetime will be deleted.'
+      ),
+      '3dprint_user_lifetime' => array(
         'type' => 'InputfieldInteger',
         'value' => 90,
         'label' => 'Lifetime of users in days. Users older than their lifetime will be deleted.'
