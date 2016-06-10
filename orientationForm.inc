@@ -1,4 +1,15 @@
+<?php
+if(!$pn = $user->get('lab_user_phone_number')){
+  $pn = '';
+}
+?>
 <form id='orientation' class='LabUserForm' action='./' method='post'>
+  <div class='row'>
+    <div class='twelve columns'>
+      <label for='phone_number'>Phone Number</label>
+      <input class='u-full-width' type='text' id='phone_number' name='phone_number' required='1' placeholder='###-###-####' value='<?php echo $pn ?>'></input>
+    </div>
+  </div>
   <div class='row'>
     <div class='twelve columns'>
       <label for='orientation_code'>Orientation Code</label>

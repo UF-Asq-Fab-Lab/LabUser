@@ -71,7 +71,7 @@
        'author' => "Thomas R Storey",
        'autoload' => true,
        'singular' => true,
-       'requires' => array("FabLabModuleHelpers>=1.0.0")
+       'requires' => array("FabLabModuleHelpers>=1.0.0, ShibbolethLoginNew")
      );
    }
 
@@ -88,12 +88,12 @@
       // update!
       require_once('LabUserUpdate.php');
     }
+    $this->addHookBefore('ShibbolethLoginNew::isUser', $this, 'hookBeforeShibbolethIsUser');
+    $this->addHookAfter('ShibbolethLoginNew::createUser', $this, 'hookAfterShibbolethCreateUser');
+    // $this->addHookAfter('ShibbolethLoginNew::updateUser', $this, 'hookAfterShibbolethUpdateUser');
     // Initialize class variables
-
-    $this->loginPageID = $this->data["login_page_id"];
-    // $this->registerPageID = $this->data["register_page_id"];
     $this->accountPageID = $this->data["account_page_id"];
-    // $this->resetPassPageID = $this->data["reset_page_id"];
+
     $this->response = array();
     if($this->wire('config')->debug){
       $this->addHook('LazyCron::every30Seconds', $this, 'expireUsers');
@@ -109,140 +109,28 @@
    public function ready(){
      // Handle the results of login, logout, register, password reset,
      // password change forms
-     $this->handleLogin();
-     $this->handleLogout();
-    //  $this->handleRegister();
-    //  $this->handleConfirmRegistration();
-    //  $this->handleRequestReset();
-    //  $this->handlePassChange();
      $this->handleOrientationCode();
-    //  $this->handleResend();
-
      // we use the ready function for page hooks because by now we know what
      // page is being loaded
      $this->hookBuildForms();
    }
 
-   protected function handleLogin(){
-     $page = wire('page');
-     if(wire('input')->post->login){
-       $this->response = array();
-       //login the user
-       $user = wire('sanitizer')->username(wire('input')->post->user);
-     	 $pass = wire('input')->post->pass;
-       if(wire("session")->login($user, $pass)){
-        //  wire('session')->redirect($config->urls->root);
-       } else {
-         $this->response[] = "<p class='error'>Login Failed. Make sure your username and password are correct.</p>";
-       }
-     }
+   public function hookBeforeShibbolethIsUser(HookEvent $event){
+     $event->arguments(0, 'lab_user_ufid');
    }
 
-   protected function handleLogout(){
-     $page = wire('page');
-     if(wire('input')->get->logout == 1) {
-       //logout the user
-       //needless to say, the logout button needs to get with a logout param
-     	wire('session')->logout();
-      wire('session')->redirect($page->httpUrl);
-     }
+   public function hookAfterShibbolethCreateUser(HookEvent $event){
+     $u = $event->return;
+     $firstName = $_SERVER["HTTP_UFSHIB_GIVENNAME"];
+     $lastName = $_SERVER["HTTP_UFSHIB_SN"];
+     $email = $_SERVER["HTTP_UFSHIB_MAIL"];
+
+     $u->lab_user_first_name = $firstName;
+     $u->lab_user_last_name = $lastName;
+     $u->email = $email;
+     $event->return = $u;
    }
 
-  //  protected function handleRegister(){
-  //    $page = wire('page');
-  //    if(wire('input')->post->register){
-  //      //register the user
-  //      $this->response = array();
-  //      $user = wire('sanitizer')->name(wire('input')->post->user);
-  //      $firstn = wire('sanitizer')->text(wire('input')->post->firstname);
-  //      $lastn = wire('sanitizer')->text(wire('input')->post->lastname);
-  //      $existingUser = wire('users')->get($user);
-   //
-  //     if($existingUser->id){
- // 				$this->response[] = "<p class='error'>Sorry, that username is already taken.</p>";
- // 			}
- // 			if(strlen($user) == 0){
- // 				$this->response[] = "<p class='error'>Only alphanumeric characters, '_', and '.' are allowed.</p>";
- // 			}
- // 			$pass = wire('sanitizer')->text(wire('input')->post->pass);
- // 			$confirmpass = wire('sanitizer')->text(wire('input')->post->confirm_pass);
- // 			if($pass != $confirmpass){
- // 				$this->response[] = "<p class='error'>Passwords must match.</p>";
- // 			}
- // 			$email = wire('sanitizer')->email(wire('input')->post->email);
-  //     $confirmemail = wire('sanitizer')->email(wire('input')->post->confirm_email);
- // 			$existingEmail = wire('users')->get("email=".$email);
- // 			if(strlen($email) == 0){
- // 				$this->response[] = "<p class='error'>Must be a valid email.</p>";
- // 			}
- // 			if($existingEmail->id){
- // 				$this->response[] ="<p class='error'>That email address is associated with an existing user.</p>";
- // 			}
-  //     if($confirmemail != $email){
-  //       $this->response[] = "<p class='error'>Email and confirmation must match.</p>";
-  //     }
- // 			$ufid = wire('sanitizer')->text(wire('input')->post->ufid);
-  //     $phone_num = wire('sanitizer')->text(wire('input')->post->phone_num);
- // 			$existingUFID = wire('users')->get("lab_user_ufid=".$ufid);
- // 			if(strlen($ufid) == 8){
- // 				$test = preg_filter('/[^0-9]/', "", $ufid);
- // 				if(strlen($test) != 0){
- // 					$this->response[] ="<p class='error'>Only numbers 0-9 allowed.</p>";
- // 				}
- // 				if($existingUFID->id){
- // 					$this->response[] ="<p class='error'>There is already a user associated with that UFID.";
- // 				}
- // 			} else {
- // 				$this->response[] = "<p class='error'>Must have exactly eight numbers.</p>";
- // 			}
- // 			if(!count($this->response)){
- // 				$u = new User();
- // 		    $u->of(false);
-  //       $u->lab_user_first_name = $firstn;
-  //       $u->lab_user_last_name = $lastn;
- // 		    $u->name = $user;
- // 		   	$u->email = $email;
- // 		    $u->pass = $pass;
- // 		    $u->lab_user_ufid = $ufid;
-  //       $u->lab_user_phone_number = $phone_num;
- // 		    $u->addRole('guest');
-  //       $u->lab_user_expiration_date = date('m/d/Y H:i:s');
- // 		    $u->save();
- // 		    $u->of(true);
- // 		    // Send email confirming registration, and providing link to confirm
-  //       // email address
-  //       $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
-  //       if($this->helper->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
-  //         $this->data["register_subject"], str_replace("[url]", $confirmurl, $this->data["register_body"]))){
-  //           //login the new user
-  //          wire('session')->login($user, $pass);
-  //          $accountPage = wire('pages')->get($this->data['account_page_id']);
-  //          wire('session')->redirect($accountPage->httpUrl."?acctreg=1");
-  //       }
- // 			}
-  //    }
-  //  }
-
-  //  protected function handleConfirmRegistration(){
-  //    if(wire('input')->get->confirm_emailaddress){
-  //      //confirm registration
-  //      //set privileges
-  //      $acctPage = wire('pages')->get($this->accountPageID);
-  //      $u = wire('users')->get(wire('input')->get->confirm_emailaddress);
-  //      $tu = wire('roles')->get("tmpuser");
-  //      if($u->id && !$u->hasRole($tu)){
-  //        $u->of(false);
-  //        //user is now, confirmed, but not oriented
-  //        $u->addRole($tu);
-  //        $u->save();
-  //        $u->of(true);
-  //        //send email
-  //        $this->helper->sendEmail($u->email, $u->name, $this->data["contact_email"], $this->data["contact_name"],
-  //        $this->data["confirm_subject"], $this->data["confirm_body"]);
-  //        wire('session')->redirect($acctPage->httpUrl."?addrconfirm=1");
-  //      }
-  //    }
-  //  }
 
    public function expireUsers(HookEvent $e) {
     //  get all users
@@ -270,81 +158,6 @@
     }
    }
 
-  //  protected function handleRequestReset(){
-  //    //the user just clicked send on the send password reset link form
-  //    //we will make sure a user exists with that email, and then send a new
-  //    // password to that address
-  //    if(wire('input')->post->reset){
-  //      $this->response = array();
-  //      $inEmail = wire('sanitizer')->email(wire('input')->post->email);
-  //      $inufid = wire('sanitizer')->text(wire('input')->post->ufid);
-  //      $resetuser = wire('users')->get("email=$inEmail, lab_user_ufid=$inufid");
-  //      if($resetuser->id){
-  //       //  send an email to the user with a link to reset the password
-  //       $newpass = substr(md5(uniqid(rand(),1)),3,10);
-  //       $resetuser->of(false);
-  //       $resetuser->pass = $newpass;
-  //       $resetuser->save();
-  //       $resetuser->of(true);
-  //       $this->helper->sendEmail($resetuser->email, $resetuser->name,
-  //       $this->data['contact_email'], $this->data['contact_name'],
-  //       $this->data['reset_subject'], str_replace("[pass]", $newpass, $this->data['reset_body']));
-  //       $this->response[] = "<p class='error'>Password reset! Please check your email to receive your new password.</p>";
-  //       if(wire('user')->isLoggedIn()){
-  //         wire('session')->logout();
-  //       }
-  //      } else {
-  //        $this->response[] = "<p class='error'>No user found with that email address and/or ufid.</p>";
-  //      }
-  //    }
-  //  }
-
-   /**
-   *
-   */
-
-  //  protected function handleResend(){
-  //    if(wire('input')->post->resend && wire('user')->isLoggedIn()){
-  //      $u = wire('user');
-  //      $page = wire('page');
-  //      $email = $u->email;
-  //      $user = $u->name;
-  //      $confirmurl = $page->httpUrl."?confirm_emailaddress=".$u->id;
-  //      if($this->helper->sendEmail($email, $user, $this->data["contact_email"], $this->data["contact_name"],
-  //        $this->data["register_subject"], str_replace("[url]", $confirmurl, $this->data["register_body"]))){
-  //         $this->response[] = "<p class='message'>Confirmation email sent! Make sure to check your spam folder.</p>";
-  //      } else {
-  //        $this->response[] = "<p class='error'>Confirmation email was not sent as a result of an error. Please wait a few minutes and try again.</p>";
-  //      }
-  //    }
-  //  }
-
-  //  protected function handlePassChange(){
-  //    // the user just clicked on the password change button in their account page.
-  //    // we will make sure the new passwords match and update her login credentials
-  //    $u = wire('user');
-  //    if(wire('input')->post->change_pass && $u->isLoggedIn()){
-  //     //  check that old pass = current pass
-  //     //  check that new pass = confirm new pass
-  //     $oldpass = wire('sanitizer')->text(wire('input')->post->old_pass);
-  //     $newpass = wire('sanitizer')->text(wire('input')->post->new_pass);
-  //     $confirmpass = wire('sanitizer')->text(wire('input')->post->confirm_new_pass);
-  //     if(!wire('session')->login($u->name, $oldpass)){
-  //       $this->response[] = "<p class='error'>You input your current password incorrectly.</p>";
-  //       return;
-  //     }
-  //     if($newpass != $confirmpass){
-  //       $this->response[] = "<p class='error'>Passwords provided don't match.</p>";
-  //       return;
-  //     }
-  //       $u->of(false);
-  //       $u->pass = $newpass;
-  //       $u->save();
-  //       $u->of(true);
-  //       $this->response[] = "<p class='message'>Password successfully changed.</p>";
-  //    }
-  //  }
-
    /**
    *
    */
@@ -352,10 +165,15 @@
    protected function handleOrientationCode(){
      if($this->input->post->submit_orientation){
        $ocode = $this->input->post->orientation_code;
+       $pn = $this->input->post->phone_number;
        $u = wire('user');
        $laserUserRole = wire('roles')->get("laser-user");
        if($u->hasRole($ur)){
          $this->response[] = "<p class='message'>You're orientation has already been confirmed in our system.</p>";
+         return;
+       }
+       if(!($u->lab_user_phone_number || $pn)){
+         $this->response[] = "<p class='error'>Please input your phone number.</p>";
          return;
        }
        if(!strcmp($ocode, $this->data["orientation_code"]) && $u->isLoggedIn()){
@@ -384,51 +202,13 @@
      if(strpos($page->url, wire('config')->urls->admin) !== 0) {
        $this->addHookAfter("TemplateFile::render", $this, "buildAccountInfo");
      }
-
-     if($page->id == $this->loginPageID){
-       // hook to the TemplateFile::render function to inject a form
-       // simple username + pass + submit button
-       $this->addHookAfter("TemplateFile::render", $this, "buildLoginForm");
-     }
-
-    //  if($page->id == $this->registerPageID){
-    //    // username + ufid + email + confirm email + password + confirm password
-    //    // + submit button
-    //    $this->addHookAfter("TemplateFile::render", $this, "buildRegisterForm");
-    //  }
-
      if($page->id == $this->accountPageID){
        // change password (old pass + new pass) + output user data (name, ufid,
        // email, uploads(with progress for each file))
        $this->addHookAfter("TemplateFile::render", $this, "buildAccountForm");
      }
-
-    //  if($page->id == $this->resetPassPageID){
-    //    //render password reset request form
-    //    $this->addHookAfter("TemplateFile::render", $this, "buildResetRequestForm");
-    //  }
    }
 
-   /**
-   *
-   */
-
-   protected function buildLoginForm(HookEvent $event){
-     if(!wire('user')->isLoggedIn()){
-       // get all response messages.
-       $res = "";
-       foreach ($this->response as $value) {
-         $res.=$value;
-       }
-       // render form to string.
-       $path = wire('config')->paths->siteModules."/LabUser/loginForm.inc";
-       $res .= $this->helper->renderFileToString($path);
-       $event->return = str_replace("[login]", $res, $event->return);
-    } else {
-      wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
-    }
-    $this->response = array();
-   }
 
    /**
    *
@@ -441,26 +221,6 @@
      $event->return = str_replace("[account-info]", $res, $event->return);
    }
 
-   /**
-   *
-   */
-
-  //  protected function buildRegisterForm(HookEvent $event){
-  //    if(!wire('user')->isLoggedIn()){
-  //      // get all response messages.
-  //      $res = "";
-  //      foreach ($this->response as $value) {
-  //        $res.=$value;
-  //      }
-  //      // render form to string.
-  //      $path = wire('config')->paths->siteModules."/LabUser/registerForm.inc";
-  //      $res .= $this->helper->renderFileToString($path);
-  //      $event->return = str_replace("[register]", $res, $event->return);
-  //   } else {
-  //     wire('session')->redirect(wire('pages')->get($this->accountPageID)->httpUrl);
-  //   }
-  //   $this->response = array();
-  //  }
 
    /**
    *
@@ -468,47 +228,20 @@
 
    protected function buildAccountForm(HookEvent $event){
      if(wire('user')->isLoggedIn()){
-       if(wire('input')->get->addrconfirm){
-         $this->response[] = "<p class='message'>Email address confirmed!</p>";
-       }
-       if(wire('input')->get->acctreg){
-         $this->response[] = "<p class='message'>Account created successfully! An email address confirmation link has been sent to the email address you provided.</p>";
-       }
        // get all response messages.
        $res = "";
        foreach ($this->response as $value) {
          $res.=$value;
        }
        // render form to string.
-       $acctPath = wire('config')->paths->siteModules."/LabUser/accountForm.inc";
        $orientPath = wire('config')->paths->siteModules."/LabUser/orientationForm.inc";
-       $resendPath = wire('config')->paths->siteModules."/LabUser/resendForm.inc";
-       $res .= $this->helper->renderFileToString($acctPath);
        $res .= $this->helper->renderFileToString($orientPath);
-       $res .= $this->helper->renderFileToString($resendPath);
        $event->return = str_replace("[account]", $res, $event->return);
     } else {
-      wire('session')->redirect(wire('pages')->get($this->loginPageID)->httpUrl);
+      $this->wire('modules')->get('ShibbolethLoginNew')->execute();
     }
     $this->response = array();
    }
-
-   /**
-   *
-   */
-
-  //  protected function buildResetRequestForm(HookEvent $event){
-  //    // get all response messages.
-  //    $res = "";
-  //    foreach ($this->response as $value) {
-  //      $res.=$value;
-  //    }
-  //    // render form to string.
-  //    $path = wire('config')->paths->siteModules."/LabUser/resetForm.inc";
-  //    $res .= $this->helper->renderFileToString($path);
-  //    $event->return = str_replace("[reset]", $res, $event->return);
-  //    $this->response = array();
-  //  }
 
    /**
    *
@@ -518,26 +251,11 @@
      $defaults = wire('modules')->getModuleConfigData($this);
      $this->helper = wire('modules')->get('FabLabModuleHelpers');
      // create login page, create register page, create account page
-     $loginPage = $this->helper->getFrontendPage("log_in");
-     $loginPage->of(false);
-     $loginPage->body = "[login]";
-     $loginPage->save();
-     $loginPage->of(true);
-    //  $registerPage = $this->helper->getFrontendPage("register");
-    //  $registerPage->of(false);
-    //  $registerPage->body = "[register]";
-    //  $registerPage->save();
-    //  $registerPage->of(true);
      $accountPage = $this->helper->getFrontendPage("account");
      $accountPage->of(false);
      $accountPage->body = "[account]";
      $accountPage->save();
      $accountPage->of(true);
-    //  $resetPassPage = $this->helper->getFrontendPage("reset_password");
-    //  $resetPassPage->of(false);
-    //  $resetPassPage->body = "[reset]";
-    //  $resetPassPage->save();
-    //  $resetPassPage->of(true);
 
      // add ufid to User template
      $userfields = wire('templates')->get("name=user")->fields;
