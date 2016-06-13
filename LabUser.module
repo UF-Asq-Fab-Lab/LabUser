@@ -12,7 +12,7 @@
  *
  * http://fablab.arts.ufl.edu
  * https://github.com/UF-Asq-Fab-Lab
- * sudo rm -R /var/www/html/sandbox/fablab/site/modules/LabUser && sudo cp ~/projects/fablab/LabUser /var/www/html/sandbox/fablab/site/modules/LabUser
+ *
  */
 
  class LabUser extends WireData implements Module, ConfigurableModule {
@@ -71,7 +71,7 @@
        'author' => "Thomas R Storey",
        'autoload' => true,
        'singular' => true,
-       'requires' => array("FabLabModuleHelpers>=1.0.0, ShibbolethLoginNew")
+       'requires' => array("FabLabModuleHelpers>=1.0.0", "ShibbolethLoginNew")
      );
    }
 
@@ -88,11 +88,15 @@
       // update!
       require_once('LabUserUpdate.php');
     }
-    $this->addHookBefore('ShibbolethLoginNew::isUser', $this, 'hookBeforeShibbolethIsUser');
-    $this->addHookAfter('ShibbolethLoginNew::createUser', $this, 'hookAfterShibbolethCreateUser');
-    // $this->addHookAfter('ShibbolethLoginNew::updateUser', $this, 'hookAfterShibbolethUpdateUser');
     // Initialize class variables
     $this->accountPageID = $this->data["account_page_id"];
+
+    $this->addHookBefore('ShibbolethLoginNew::isUser', $this, 'hookBeforeShibbolethIsUser');
+    $this->addHookAfter('ShibbolethLoginNew::createUser', $this, 'hookAfterShibbolethCreateUser');
+    if($this->wire('modules')->isInstalled("LabCharger")){
+      $this->addHookAfter('ProcessUser::executeEdit', $this, 'hookAfterUserEdit');
+    }
+
 
     $this->response = array();
     if($this->wire('config')->debug){
@@ -134,12 +138,13 @@
 
    public function expireUsers(HookEvent $e) {
     //  get all users
-    $laserusers = wire('users')->find('roles=laser-user');
+    $users = wire('users')->find('roles=laser-user|cnc-user|3dprint-user');
     // check creation date vs now
     foreach ($users as $key => $user) {
       if(!$user->get("lab_user_expiration_date")){
         $user->of(false);
-        $user->lab_user_expiration_date = date('m/d/Y H:i:s', time()+($this->data['laser_user_lifetime']*24*60*60));
+        $user->lab_user_expiration_date = date('m/d/Y H:i:s',
+        time()+($this->data['laser_user_lifetime']*24*60*60));
         $user->save();
         $user->of(true);
       } else {
@@ -234,13 +239,26 @@
          $res.=$value;
        }
        // render form to string.
-       $orientPath = wire('config')->paths->siteModules."/LabUser/orientationForm.inc";
+       $orientPath = wire('config')->paths->siteModules."/LabUser/accountForm.inc";
        $res .= $this->helper->renderFileToString($orientPath);
        $event->return = str_replace("[account]", $res, $event->return);
     } else {
-      $this->wire('modules')->get('ShibbolethLoginNew')->execute();
+      $this->wire('modules')->get('ShibbolethLoginNew')->protect();
     }
     $this->response = array();
+   }
+
+   protected function hookAfterUserEdit(HookEvent $event){
+     $out = $event->return;
+     $charge = new LabCharge();
+     $chargeUser = $this->wire('users')->get($_GET['id']);
+     $adminUrl = $this->wire('config')->urls->admin;
+     $btn = $this->wire('modules')->get('InputfieldButton');
+ 		 $btn->attr('id', 'LabChargeCreateFromUserButton');
+ 		 $btn->attr('value', 'Add Charge for This User');
+     $btn->attr('href', $adminUrl.'lab_charger/lab_charges/add/?parent_id='.$charge->parent_id.'&from_user='.$chargeUser->lab_user_ufid);
+ 		 $btn->icon = 'plus-square-o';
+     $event->return = $btn->render().$out;
    }
 
    /**
